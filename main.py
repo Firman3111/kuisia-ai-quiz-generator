@@ -1,9 +1,13 @@
 import asyncio
+import hashlib
 import io
 import json
 import os
 import re
 import tempfile
+import time
+import urllib.parse
+import urllib.request
 import uuid
 from typing import Optional
 
@@ -38,6 +42,10 @@ os.makedirs(MEDIA_DIR, exist_ok=True)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+
+CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "dz16gb8tw").strip()
+CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY", "368959299858339").strip()
+CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET", "368959299858339").strip()
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -130,6 +138,58 @@ def _set_table_no_borders(table):
     tblPr.append(borders)
 
 
+def _upload_image_to_cloudinary(blob: bytes, public_id: str) -> Optional[str]:
+    if not (CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET):
+        return None
+
+    timestamp = str(int(time.time()))
+    folder = "ai_quiz_media"
+    params_to_sign = f"folder={folder}&public_id={public_id}&timestamp={timestamp}{CLOUDINARY_API_SECRET}"
+    signature = hashlib.sha1(params_to_sign.encode("utf-8")).hexdigest()
+
+    boundary = f"----WebKitFormBoundary{uuid.uuid4().hex}"
+    crlf = "\r\n"
+
+    def _part_field(name: str, value: str) -> bytes:
+        return (
+            f"--{boundary}{crlf}"
+            f'Content-Disposition: form-data; name="{name}"{crlf}{crlf}'
+            f"{value}{crlf}"
+        ).encode("utf-8")
+
+    body = bytearray()
+    body.extend(_part_field("api_key", CLOUDINARY_API_KEY))
+    body.extend(_part_field("timestamp", timestamp))
+    body.extend(_part_field("folder", folder))
+    body.extend(_part_field("public_id", public_id))
+    body.extend(_part_field("signature", signature))
+    body.extend(
+        (
+            f"--{boundary}{crlf}"
+            f'Content-Disposition: form-data; name="file"; filename="{public_id}.png"{crlf}'
+            f"Content-Type: application/octet-stream{crlf}{crlf}"
+        ).encode("utf-8")
+    )
+    body.extend(blob)
+    body.extend(f"{crlf}--{boundary}--{crlf}".encode("utf-8"))
+
+    upload_url = f"https://api.cloudinary.com/v1_1/{urllib.parse.quote(CLOUDINARY_CLOUD_NAME)}/image/upload"
+    req = urllib.request.Request(
+        upload_url,
+        data=bytes(body),
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+            return payload.get("secure_url")
+    except Exception as cloud_err:
+        print(f"Peringatan upload Cloudinary, fallback lokal: {cloud_err}")
+        return None
+
+
 def _extract_images_from_xml_element(xml_element, doc_part, extracted_images: list) -> list:
     """Mengekstrak gambar inline/drawing dari elemen XML paragraf atau sel tabel."""
     found_tags = []
@@ -151,16 +211,20 @@ def _extract_images_from_xml_element(xml_element, doc_part, extracted_images: li
 
             img_idx = len(extracted_images) + 1
             tag = f"[IMG_{img_idx}]"
-            filename = f"qimg_{uuid.uuid4().hex[:10]}_{img_idx}{ext}"
+            public_id = f"qimg_{uuid.uuid4().hex[:10]}_{img_idx}"
+            filename = f"{public_id}{ext}"
             save_path = os.path.join(MEDIA_DIR, filename)
 
             with open(save_path, "wb") as img_f:
                 img_f.write(part.blob)
 
+            cloud_url = _upload_image_to_cloudinary(part.blob, public_id)
+            final_url = cloud_url or f"/media/{filename}"
+
             extracted_images.append({
                 "tag": tag,
                 "filename": filename,
-                "url": f"/media/{filename}",
+                "url": final_url,
                 "content_type": content_type,
                 "blob": part.blob,
             })
