@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuis Interaktif Siswa</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 py-4 px-6 shadow-xs sticky top-0 z-10">
+        <div class="max-w-3xl mx-auto flex justify-between items-center gap-4">
+            <div>
+                <span id="quiz-meta" class="text-xs font-semibold uppercase tracking-wider text-indigo-600">Memuat Kuis...</span>
+                <h1 id="quiz-title" class="text-lg font-bold text-slate-800">Harap tunggu sebentar</h1>
+            </div>
+            <div id="score-badge" class="hidden bg-emerald-100 text-emerald-800 font-bold px-4 py-1.5 rounded-full text-sm shrink-0">
+                Skor: <span id="score-value">0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-3xl mx-auto p-6 w-full my-6 flex-grow">
+
+        <!-- Loading State -->
+        <div id="loading" class="text-center py-16">
+            <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-indigo-600 border-t-transparent mb-3"></div>
+            <p class="text-slate-500 text-sm">Mengambil lembar soal dari server...</p>
+        </div>
+
+        <!-- Identitas Siswa -->
+        <div id="student-info-card" class="hidden bg-white rounded-2xl border border-slate-200 p-6 mb-6 shadow-xs">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap Siswa</label>
+            <input type="text" id="student-name" placeholder="Ketik nama lengkap Anda sebelum mulai..." class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <!-- Daftar Soal -->
+        <div id="questions-container" class="space-y-6 hidden"></div>
+
+        <!-- Tombol Submit -->
+        <div id="submit-section" class="mt-8 hidden">
+            <button type="button" onclick="submitQuiz()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 rounded-xl shadow-sm transition cursor-pointer">
+                Selesai &amp; Lihat Hasil Kuis ✅
+            </button>
+        </div>
+
+        <!-- Kartu Hasil Akhir -->
+        <div id="result-summary" class="hidden mt-8 bg-white rounded-2xl border-2 border-indigo-500 p-8 text-center shadow-md">
+            <h2 class="text-2xl font-bold text-slate-800 mb-1">Kuis Selesai Dikerjakan! 🎉</h2>
+            <p id="result-student-name" class="text-slate-500 text-sm mb-4"></p>
+            <div id="final-score-box" class="inline-block bg-indigo-50 text-indigo-700 text-3xl font-extrabold px-8 py-4 rounded-2xl mb-4">
+                0 / 100
+            </div>
+            <p class="text-xs text-slate-500">Gulir ke atas untuk melihat pembahasan &amp; kunci jawaban setiap nomor.</p>
+        </div>
+
+    </main>
+
+    <footer class="text-center py-4 text-xs text-slate-400 border-t border-slate-200 bg-white">
+        Ditenagai oleh AI Soal Ujian Creator
+    </footer>
+
+    <script>
+    const API_BASE = window.location.origin;
+    let quizQuestions = [];
+    let userAnswers = {};
+    let isSubmitted = false;
+
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const slug = pathParts[pathParts.length - 1] || '';
+
+    function stripTags(str) {
+        return String(str || '').replace(/\[[^\]]*\]/g, ' ').replace(/\s{2,}/g, ' ').trim();
+    }
+
+    function escapeHtml(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function passageKey(text) {
+        return stripTags(text).toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 80);
+    }
+
+    function resolveImageUrl(urlOrFile) {
+        if (!urlOrFile) return '';
+        const val = String(urlOrFile).trim();
+        if (!val) return '';
+        if (val.startsWith('http://') || val.startsWith('https://') || val.startsWith('/')) {
+            return val;
+        }
+        return `${API_BASE}/media/${encodeURIComponent(val)}`;
+    }
+
+    function buildTableHtml(tableRows) {
+        if (!Array.isArray(tableRows) || tableRows.length === 0) return '';
+        const colCount = Math.max(...tableRows.map(r => Array.isArray(r) ? r.length : 0));
+        if (colCount <= 0) return '';
+
+        let html = `<div class="overflow-x-auto my-4"><table class="w-full border-collapse border border-slate-300 text-sm">`;
+        tableRows.forEach((row, rIdx) => {
+            html += `<tr>`;
+            for (let cIdx = 0; cIdx < colCount; cIdx++) {
+                const cellVal = Array.isArray(row) && cIdx < row.length ? escapeHtml(stripTags(row[cIdx])) : '';
+                if (rIdx === 0) {
+                    html += `<th class="border border-slate-300 bg-slate-100 px-3 py-2 text-left font-semibold text-slate-800">${cellVal}</th>`;
+                } else {
+                    html += `<td class="border border-slate-300 px-3 py-2 text-slate-700">${cellVal}</td>`;
+                }
+            }
+            html += `</tr>`;
+        });
+        html += `</table></div>`;
+        return html;
+    }
+
+    function buildPassageBoxHtml(passageText, startNum, endNum) {
+        const cleanFull = stripTags(passageText);
+        if (!cleanFull) return '';
+
+        const lines = String(passageText || '')
+            .split('\n')
+            .map(l => stripTags(l))
+            .filter(Boolean);
+
+        const rangeLabel = endNum > startNum
+            ? `Bacalah teks berikut untuk menjawab soal nomor ${startNum} s.d. ${endNum}!`
+            : `Bacalah teks berikut untuk menjawab soal nomor ${startNum}!`;
+
+        let paragraphsHtml = '';
+        lines.forEach((line, idx) => {
+            const isTitle = idx === 0 && line.length <= 65 && !line.endsWith('.');
+            if (isTitle) {
+                paragraphsHtml += `<p class="font-bold text-center text-slate-900 mb-2">${escapeHtml(line)}</p>`;
+            } else {
+                paragraphsHtml += `<p class="text-slate-700 text-sm leading-relaxed indent-6 mb-2 last:mb-0">${escapeHtml(line)}</p>`;
+            }
+        });
+
+        return `
+            <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-5 shadow-xs">
+                <div class="text-xs font-semibold italic text-amber-900 mb-2">${escapeHtml(rangeLabel)}</div>
+                ${paragraphsHtml}
+            </div>
+        `;
+    }
+
+    async function loadQuiz() {
+        try {
+            const response = await fetch(`${API_BASE}/api/get-quiz/${encodeURIComponent(slug)}`);
+            if (!response.ok) throw new Error("Kuis tidak ditemukan atau tautan sudah tidak valid.");
+
+            const data = await response.json();
+            const quizPayload = data.quiz_data || {};
+            quizQuestions = Array.isArray(quizPayload.questions) ? quizPayload.questions : [];
+
+            document.title = data.title || "Kuis Interaktif";
+            document.getElementById('quiz-meta').textContent = `${data.subject || 'Umum'} • ${data.grade || 'Umum'}`;
+            document.getElementById('quiz-title').textContent = data.title || "Latihan Soal";
+
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('student-info-card').classList.remove('hidden');
+            document.getElementById('questions-container').classList.remove('hidden');
+            document.getElementById('submit-section').classList.remove('hidden');
+
+            renderQuestions();
+        } catch (err) {
+            document.getElementById('loading').innerHTML = `<p class="text-red-600 font-medium">${escapeHtml(err.message)}</p>`;
+        }
+    }
+
+    function renderQuestions() {
+        const container = document.getElementById('questions-container');
+        container.innerHTML = '';
+        const printedPassageKeys = new Set();
+
+        quizQuestions.forEach((q, index) => {
+            const qNum = index + 1;
+            const pText = (q.passage || '').trim();
+            const pKey = passageKey(pText);
+
+            // Cetak cerita/bacaan hanya sekali di atas soal pertama dari kelompok bacaan yang sama
+            if (pText && pKey && !printedPassageKeys.has(pKey)) {
+                let endNum = qNum;
+                for (let nextIdx = index + 1; nextIdx < quizQuestions.length; nextIdx++) {
+                    const nextKey = passageKey(quizQuestions[nextIdx].passage || '');
+                    if (nextKey === pKey) {
+                        endNum = nextIdx + 1;
+                    } else {
+                        break;
+                    }
+                }
+                const passageWrapper = document.createElement('div');
+                passageWrapper.innerHTML = buildPassageBoxHtml(pText, qNum, endNum);
+                container.appendChild(passageWrapper.firstElementChild);
+                printedPassageKeys.add(pKey);
+            }
+
+            const card = document.createElement('div');
+            card.id = `q-card-${index}`;
+            card.className = "bg-white rounded-2xl border border-slate-200 p-6 shadow-xs transition";
+
+            const cleanQuestion = escapeHtml(stripTags(q.question));
+            let bodyHTML = `<div class="font-semibold text-slate-800 mb-3"><span class="text-indigo-600 mr-1">${qNum}.</span> ${cleanQuestion}</div>`;
+
+            // Gambar utama pada soal (mendukung satu atau beberapa gambar per soal)
+            const rawQImgs = [];
+            if (Array.isArray(q.image_urls) && q.image_urls.length > 0) {
+                rawQImgs.push(...q.image_urls);
+            } else if (Array.isArray(q.image_files) && q.image_files.length > 0) {
+                rawQImgs.push(...q.image_files);
+            } else if (q.image_url || q.image_file) {
+                rawQImgs.push(q.image_url || q.image_file);
+            }
+
+            const qImgUrls = rawQImgs.map(resolveImageUrl).filter(Boolean);
+            if (qImgUrls.length > 0) {
+                bodyHTML += `<div class="my-3 flex flex-wrap gap-3 items-start">`;
+                qImgUrls.forEach((imgSrc, imgI) => {
+                    bodyHTML += `
+                        <img src="${escapeHtml(imgSrc)}" alt="Gambar soal ${qNum} (${imgI + 1})" class="max-h-64 rounded-xl border border-slate-200 object-contain bg-slate-50 p-1">
+                    `;
+                });
+                bodyHTML += `</div>`;
+            }
+
+            // Tabel pada soal (jika ada)
+            bodyHTML += buildTableHtml(q.table_rows);
+
+            if (q.type === 'multiple_choice' && Array.isArray(q.options)) {
+                const optImgs = Array.isArray(q.option_image_urls) ? q.option_image_urls : [];
+                const optFiles = Array.isArray(q.option_image_files) ? q.option_image_files : [];
+
+                bodyHTML += `<div class="space-y-2.5 mt-3">`;
+                q.options.forEach((opt, optIdx) => {
+                    const cleanOpt = escapeHtml(stripTags(opt));
+                    const rawOptTrim = String(opt || '').trim();
+                    const letterMatch = rawOptTrim.match(/^([A-Da-d])[\.\)\s]/);
+                    const letter = letterMatch ? letterMatch[1].toUpperCase() : String.fromCharCode(65 + optIdx);
+
+                    const optImgUrl = resolveImageUrl(optImgs[optIdx] || optFiles[optIdx]);
+                    const optImgHtml = optImgUrl
+                        ? `<img src="${escapeHtml(optImgUrl)}" alt="Opsi ${letter}" class="max-h-36 mt-2 rounded-lg border border-slate-200 object-contain bg-slate-50 p-1">`
+                        : '';
+
+                    bodyHTML += `
+                        <label id="opt-label-${index}-${letter}" class="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
+                            <input type="radio" name="question_${index}" value="${letter}" onchange="selectOption(${index}, '${letter}')" class="mt-1 accent-indigo-600">
+                            <div class="text-sm text-slate-700">
+                                <div>${cleanOpt}</div>
+                                ${optImgHtml}
+                            </div>
+                        </label>
+                    `;
+                });
+                bodyHTML += `</div>`;
+            } else if (q.type === 'matching' && Array.isArray(q.pairs) && q.pairs.length > 0) {
+                const rightOptions = q.pairs.map((p, idx) => ({
+                    code: String.fromCharCode(65 + idx),
+                    label: stripTags(p.right) || `Pilihan ${String.fromCharCode(65 + idx)}`
+                }));
+
+                bodyHTML += `<div class="space-y-3 mt-3">`;
+                q.pairs.forEach((pairItem, pIdx) => {
+                    const leftClean = escapeHtml(stripTags(pairItem.left));
+                    const leftImgUrl = resolveImageUrl(pairItem.left_image_url || pairItem.left_image_file);
+                    const leftImgHtml = leftImgUrl
+                        ? `<img src="${escapeHtml(leftImgUrl)}" alt="Pasangan ${pIdx + 1}" class="max-h-24 mt-1.5 rounded-lg border border-slate-200 object-contain">`
+                        : '';
+
+                    const selectOptionsHtml = rightOptions.map(ro =>
+                        `<option value="${ro.code}">${ro.code}. ${escapeHtml(ro.label)}</option>`
+                    ).join('');
+
+                    bodyHTML += `
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50/50">
+                            <div class="text-sm text-slate-700">
+                                <span class="font-semibold text-slate-800">${pIdx + 1}.</span> ${leftClean}
+                                ${leftImgHtml}
+                            </div>
+                            <select data-match-index="${index}" data-pair-idx="${pIdx}" onchange="updateMatchingAnswer(${index})" class="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-indigo-500">
+                                <option value="">-- Pilih Pasangan --</option>
+                                ${selectOptionsHtml}
+                            </select>
+                        </div>
+                    `;
+                });
+                bodyHTML += `</div>`;
+            } else {
+                bodyHTML += `
+                    <textarea id="essay-input-${index}" rows="3" placeholder="Tuliskan jawaban Anda di sini..." oninput="selectOption(${index}, this.value)" class="mt-2 w-full border border-slate-300 rounded-xl p-3 text-sm focus:outline-none focus:border-indigo-500"></textarea>
+                `;
+            }
+
+            bodyHTML += `<div id="feedback-${index}" class="hidden mt-4 p-4 rounded-xl text-sm bg-slate-50 border border-slate-200"></div>`;
+
+            card.innerHTML = bodyHTML;
+            container.appendChild(card);
+        });
+    }
+
+    function selectOption(qIndex, value) {
+        if (isSubmitted) return;
+        userAnswers[qIndex] = value;
+    }
+
+    function updateMatchingAnswer(qIndex) {
+        if (isSubmitted) return;
+        const selects = document.querySelectorAll(`select[data-match-index="${qIndex}"]`);
+        const mapAns = {};
+        selects.forEach(sel => {
+            const pIdx = sel.getAttribute('data-pair-idx');
+            mapAns[pIdx] = sel.value;
+        });
+        userAnswers[qIndex] = mapAns;
+    }
+
+    function submitQuiz() {
+        const studentName = document.getElementById('student-name').value.trim();
+        if (!studentName) {
+            document.getElementById('student-name').focus();
+            return alert("Silakan isi Nama Lengkap Anda terlebih dahulu!");
+        }
+
+        isSubmitted = true;
+        let mcTotal = 0;
+        let mcCorrect = 0;
+
+        quizQuestions.forEach((q, index) => {
+            const feedbackBox = document.getElementById(`feedback-${index}`);
+            feedbackBox.classList.remove('hidden');
+
+            document.querySelectorAll(`input[name="question_${index}"]`).forEach(inp => inp.disabled = true);
+            document.querySelectorAll(`select[data-match-index="${index}"]`).forEach(sel => sel.disabled = true);
+            const essayEl = document.getElementById(`essay-input-${index}`);
+            if (essayEl) essayEl.disabled = true;
+
+            if (q.type === 'multiple_choice') {
+                mcTotal++;
+                const chosen = (userAnswers[index] || '').toUpperCase();
+                const correctAns = (q.answer || '').trim().charAt(0).toUpperCase();
+
+                const chosenLabel = document.getElementById(`opt-label-${index}-${chosen}`);
+                const correctLabel = document.getElementById(`opt-label-${index}-${correctAns}`);
+
+                if (chosen === correctAns) {
+                    mcCorrect++;
+                    if (chosenLabel) chosenLabel.classList.add('bg-emerald-50', 'border-emerald-500');
+                    feedbackBox.classList.add('bg-emerald-50/70', 'border-emerald-200', 'text-emerald-900');
+                    feedbackBox.innerHTML = `<strong>✅ Benar!</strong> ${escapeHtml(stripTags(q.explanation || ''))}`;
+                } else {
+                    if (chosenLabel) chosenLabel.classList.add('bg-red-50', 'border-red-400');
+                    if (correctLabel) correctLabel.classList.add('bg-emerald-50', 'border-emerald-500');
+                    feedbackBox.classList.add('bg-red-50/70', 'border-red-200', 'text-red-900');
+                    feedbackBox.innerHTML = `<strong>❌ Kurang Tepat.</strong> Kunci jawaban: <strong>${escapeHtml(correctAns)}</strong>. ${escapeHtml(stripTags(q.explanation || ''))}`;
+                }
+            } else if (q.type === 'matching' && Array.isArray(q.pairs)) {
+                const keyList = q.pairs.map((p, i) => `${i + 1} → ${String.fromCharCode(65 + i)} (${stripTags(p.right)})`);
+                feedbackBox.classList.add('bg-indigo-50/70', 'border-indigo-200', 'text-indigo-900');
+                feedbackBox.innerHTML = `<strong>🔗 Kunci Pasangan:</strong><br>${escapeHtml(keyList.join(' | '))}`;
+            } else {
+                const rubricText = stripTags(q.rubric || q.answer || '-');
+                feedbackBox.classList.add('bg-indigo-50/70', 'border-indigo-200', 'text-indigo-900');
+                feedbackBox.innerHTML = `<strong>📋 Rubrik / Kunci Jawaban:</strong><br>${escapeHtml(rubricText)}`;
+            }
+        });
+
+        document.getElementById('submit-section').classList.add('hidden');
+        document.getElementById('result-summary').classList.remove('hidden');
+        document.getElementById('result-student-name').textContent = `Peserta: ${studentName}`;
+
+        const finalScoreBox = document.getElementById('final-score-box');
+        const scoreBadge = document.getElementById('score-badge');
+
+        if (mcTotal > 0) {
+            const score = Math.round((mcCorrect / mcTotal) * 100);
+            finalScoreBox.textContent = `Skor: ${score} / 100`;
+            document.getElementById('score-value').textContent = `${score}/100`;
+            scoreBadge.classList.remove('hidden');
+        } else {
+            finalScoreBox.textContent = `Uraian Selesai`;
+        }
+
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    loadQuiz();
+    </script>
+</body>
+</html>
