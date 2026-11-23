@@ -794,6 +794,23 @@
       flex-wrap: wrap;
     }
 
+    .founder-avatar {
+        width: 112px;
+        height: 112px;
+        border-radius: 14px;
+        border: var(--border);
+        background: var(--accent-yellow);
+        flex-shrink: 0;
+        overflow: hidden;
+        }
+
+        .founder-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center top;
+        }
+
     footer {
       text-align: center;
       padding: 18px 0 32px;
@@ -1027,7 +1044,9 @@
         <h2 class="founder-heading" data-i18n="founderTitle">Kenalan dengan <span>Pembuatnya!</span></h2>
 
         <div class="founder-box">
-          <div class="founder-avatar" aria-label="Firman A. Prasetyo">FA</div>
+          <div class="founder-avatar">
+            <img src="/founder-photo.png" alt="Firman A. Prasetyo" />
+          </div>
           <div class="founder-bio">
             <p data-i18n="founderBio">Kuisia Edu Hub lahir dari kebutuhan nyata untuk mempercepat penyusunan lembar latihan dan evaluasi belajar tanpa pekerjaan salin-tempel yang berulang, sehingga pendidik bisa lebih fokus mendampingi siswa.</p>
             <div class="founder-name" data-i18n="founderRole">Firman A. Prasetyo — Founder &amp; Builder</div>

@@ -1233,3 +1233,10 @@ async def serve_quiz_page(slug: str):
             return f.read()
     except Exception:
         return "<h3>Template kuis tidak ditemukan di server.</h3>", 404
+
+@app.get("/founder-photo.png")
+async def serve_founder_photo():
+    photo_path = os.path.join(BASE_DIR, "firman.png")
+    if not os.path.exists(photo_path):
+        raise HTTPException(status_code=404, detail="Foto founder tidak ditemukan.")
+    return FileResponse(photo_path, media_type="image/png")
