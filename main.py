@@ -19,7 +19,7 @@ from docx.oxml.ns import qn
 from docx.shared import Cm, Pt
 from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, StreamingResponse
 from google import genai
 from google.genai import types
 from pydantic import BaseModel
@@ -39,13 +39,17 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MEDIA_DIR = os.path.join(BASE_DIR, "media_exports")
 os.makedirs(MEDIA_DIR, exist_ok=True)
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://gzeayqtnqwmxuwhccixl.supabase.co")
+SUPABASE_KEY = os.getenv(
+    "SUPABASE_KEY",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6ZWF5cXRucXdteHV3aGNjaXhsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5NDkxOTM3OCwiZXhwIjoyMTEwNDk1Mzc4fQ.TXWY-xSSj2YIeg_c42NA139kXw17y_fJUvpQo8Pklgc",
+)
 
-CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "dz16gb8tw").strip()
-CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY", "368959299858339").strip()
-CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET", "368959299858339").strip()
+CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip()
+CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY", "").strip()
+CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET", "").strip()
+CLOUDINARY_FOLDER = "ai_quiz_media"
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -60,6 +64,158 @@ async def serve_home():
         with open(index_path, "r", encoding="utf-8") as f:
             return f.read()
     return "<h3>File index.html tidak ditemukan di folder server.</h3>"
+
+
+def _build_cloudinary_public_url(filename: str) -> Optional[str]:
+    if not CLOUDINARY_CLOUD_NAME or not filename:
+        return None
+    safe_name = os.path.basename(filename.strip())
+    stem, ext = os.path.splitext(safe_name)
+    if not stem:
+        return None
+    cloud_enc = urllib.parse.quote(CLOUDINARY_CLOUD_NAME)
+    public_id_enc = urllib.parse.quote(f"{CLOUDINARY_FOLDER}/{stem}", safe="/")
+    ext_suffix = ext.lower() if ext else ""
+    return f"https://res.cloudinary.com/{cloud_enc}/image/upload/{public_id_enc}{ext_suffix}"
+
+
+def _upload_image_to_cloudinary(blob: bytes, public_id: str) -> Optional[str]:
+    if not (CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET):
+        return None
+
+    timestamp = str(int(time.time()))
+    params_to_sign = f"folder={CLOUDINARY_FOLDER}&public_id={public_id}&timestamp={timestamp}{CLOUDINARY_API_SECRET}"
+    signature = hashlib.sha1(params_to_sign.encode("utf-8")).hexdigest()
+
+    boundary = f"----WebKitFormBoundary{uuid.uuid4().hex}"
+    crlf = "\r\n"
+
+    def _part_field(name: str, value: str) -> bytes:
+        return (
+            f"--{boundary}{crlf}"
+            f'Content-Disposition: form-data; name="{name}"{crlf}{crlf}'
+            f"{value}{crlf}"
+        ).encode("utf-8")
+
+    body = bytearray()
+    body.extend(_part_field("api_key", CLOUDINARY_API_KEY))
+    body.extend(_part_field("timestamp", timestamp))
+    body.extend(_part_field("folder", CLOUDINARY_FOLDER))
+    body.extend(_part_field("public_id", public_id))
+    body.extend(_part_field("signature", signature))
+    body.extend(
+        (
+            f"--{boundary}{crlf}"
+            f'Content-Disposition: form-data; name="file"; filename="{public_id}.png"{crlf}'
+            f"Content-Type: application/octet-stream{crlf}{crlf}"
+        ).encode("utf-8")
+    )
+    body.extend(blob)
+    body.extend(f"{crlf}--{boundary}--{crlf}".encode("utf-8"))
+
+    upload_url = f"https://api.cloudinary.com/v1_1/{urllib.parse.quote(CLOUDINARY_CLOUD_NAME)}/image/upload"
+    req = urllib.request.Request(
+        upload_url,
+        data=bytes(body),
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+            return payload.get("secure_url")
+    except Exception as cloud_err:
+        print(f"Peringatan upload Cloudinary, fallback lokal: {cloud_err}")
+        return None
+
+
+def _normalize_media_url(raw_url: Optional[str], fallback_filename: Optional[str] = None) -> str:
+    val = (raw_url or "").strip()
+    fname = os.path.basename((fallback_filename or "").strip())
+
+    if val.startswith("http://127.0.0.1:8000/media/") or val.startswith("http://localhost:8000/media/"):
+        fname = os.path.basename(val)
+        val = ""
+
+    if val.startswith("http://") or val.startswith("https://"):
+        return val
+
+    if val.startswith("/media/"):
+        fname = os.path.basename(val)
+
+    if fname:
+        local_path = os.path.join(MEDIA_DIR, fname)
+        if os.path.exists(local_path):
+            return f"/media/{urllib.parse.quote(fname)}"
+        cloud_url = _build_cloudinary_public_url(fname)
+        if cloud_url:
+            return cloud_url
+        return f"/media/{urllib.parse.quote(fname)}"
+
+    return val
+
+
+def _normalize_quiz_media_urls(quiz_obj: dict) -> dict:
+    if not isinstance(quiz_obj, dict):
+        return quiz_obj
+    out = dict(quiz_obj)
+    questions = out.get("questions")
+    if not isinstance(questions, list):
+        return out
+
+    norm_questions = []
+    for q in questions:
+        if not isinstance(q, dict):
+            norm_questions.append(q)
+            continue
+        item = dict(q)
+
+        q_files = item.get("image_files") if isinstance(item.get("image_files"), list) else []
+        q_urls = item.get("image_urls") if isinstance(item.get("image_urls"), list) else []
+        max_q = max(len(q_files), len(q_urls))
+        if max_q > 0:
+            item["image_urls"] = [
+                _normalize_media_url(
+                    q_urls[i] if i < len(q_urls) else "",
+                    q_files[i] if i < len(q_files) else "",
+                )
+                for i in range(max_q)
+            ]
+
+        if item.get("image_url") or item.get("image_file"):
+            item["image_url"] = _normalize_media_url(item.get("image_url"), item.get("image_file"))
+
+        opt_files = item.get("option_image_files") if isinstance(item.get("option_image_files"), list) else []
+        opt_urls = item.get("option_image_urls") if isinstance(item.get("option_image_urls"), list) else []
+        max_opt = max(len(opt_files), len(opt_urls))
+        if max_opt > 0:
+            item["option_image_urls"] = [
+                _normalize_media_url(
+                    opt_urls[i] if i < len(opt_urls) else "",
+                    opt_files[i] if i < len(opt_files) else "",
+                )
+                for i in range(max_opt)
+            ]
+
+        if isinstance(item.get("pairs"), list):
+            norm_pairs = []
+            for p in item["pairs"]:
+                if not isinstance(p, dict):
+                    norm_pairs.append(p)
+                    continue
+                pd = dict(p)
+                if pd.get("left_image_url") or pd.get("left_image_file"):
+                    pd["left_image_url"] = _normalize_media_url(pd.get("left_image_url"), pd.get("left_image_file"))
+                if pd.get("right_image_url") or pd.get("right_image_file"):
+                    pd["right_image_url"] = _normalize_media_url(pd.get("right_image_url"), pd.get("right_image_file"))
+                norm_pairs.append(pd)
+            item["pairs"] = norm_pairs
+
+        norm_questions.append(item)
+
+    out["questions"] = norm_questions
+    return out
 
 
 def _normalize_grade(raw_grade: Optional[str]) -> str:
@@ -138,58 +294,6 @@ def _set_table_no_borders(table):
     tblPr.append(borders)
 
 
-def _upload_image_to_cloudinary(blob: bytes, public_id: str) -> Optional[str]:
-    if not (CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET):
-        return None
-
-    timestamp = str(int(time.time()))
-    folder = "ai_quiz_media"
-    params_to_sign = f"folder={folder}&public_id={public_id}&timestamp={timestamp}{CLOUDINARY_API_SECRET}"
-    signature = hashlib.sha1(params_to_sign.encode("utf-8")).hexdigest()
-
-    boundary = f"----WebKitFormBoundary{uuid.uuid4().hex}"
-    crlf = "\r\n"
-
-    def _part_field(name: str, value: str) -> bytes:
-        return (
-            f"--{boundary}{crlf}"
-            f'Content-Disposition: form-data; name="{name}"{crlf}{crlf}'
-            f"{value}{crlf}"
-        ).encode("utf-8")
-
-    body = bytearray()
-    body.extend(_part_field("api_key", CLOUDINARY_API_KEY))
-    body.extend(_part_field("timestamp", timestamp))
-    body.extend(_part_field("folder", folder))
-    body.extend(_part_field("public_id", public_id))
-    body.extend(_part_field("signature", signature))
-    body.extend(
-        (
-            f"--{boundary}{crlf}"
-            f'Content-Disposition: form-data; name="file"; filename="{public_id}.png"{crlf}'
-            f"Content-Type: application/octet-stream{crlf}{crlf}"
-        ).encode("utf-8")
-    )
-    body.extend(blob)
-    body.extend(f"{crlf}--{boundary}--{crlf}".encode("utf-8"))
-
-    upload_url = f"https://api.cloudinary.com/v1_1/{urllib.parse.quote(CLOUDINARY_CLOUD_NAME)}/image/upload"
-    req = urllib.request.Request(
-        upload_url,
-        data=bytes(body),
-        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
-        method="POST",
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            payload = json.loads(resp.read().decode("utf-8"))
-            return payload.get("secure_url")
-    except Exception as cloud_err:
-        print(f"Peringatan upload Cloudinary, fallback lokal: {cloud_err}")
-        return None
-
-
 def _extract_images_from_xml_element(xml_element, doc_part, extracted_images: list) -> list:
     """Mengekstrak gambar inline/drawing dari elemen XML paragraf atau sel tabel."""
     found_tags = []
@@ -219,7 +323,7 @@ def _extract_images_from_xml_element(xml_element, doc_part, extracted_images: li
                 img_f.write(part.blob)
 
             cloud_url = _upload_image_to_cloudinary(part.blob, public_id)
-            final_url = cloud_url or f"/media/{filename}"
+            final_url = cloud_url if cloud_url else f"/media/{filename}"
 
             extracted_images.append({
                 "tag": tag,
@@ -302,9 +406,14 @@ def _generate_single_json(prompt: str, extra_parts: list = None, temperature: fl
 async def serve_media_file(filename: str):
     safe_name = os.path.basename(filename)
     file_path = os.path.join(MEDIA_DIR, safe_name)
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File gambar tidak ditemukan.")
-    return FileResponse(file_path)
+    if os.path.exists(file_path):
+        return FileResponse(file_path)
+
+    cloud_url = _build_cloudinary_public_url(safe_name)
+    if cloud_url:
+        return RedirectResponse(url=cloud_url, status_code=307)
+
+    raise HTTPException(status_code=404, detail="File gambar tidak ditemukan.")
 
 
 @app.post("/api/upload-quiz")
@@ -634,6 +743,12 @@ async def get_archive_detail(archive_id: str):
         if not res.data:
             raise HTTPException(status_code=404, detail="Arsip dokumen tidak ditemukan.")
         row = res.data[0]
+        raw_master = row.get("master_quiz", {"title": "Latihan Soal Utama", "questions": []})
+        raw_alts = row.get("alternatives", [])
+
+        norm_master = _normalize_quiz_media_urls(raw_master)
+        norm_alts = [_normalize_quiz_media_urls(a) for a in raw_alts] if isinstance(raw_alts, list) else []
+
         return {
             "status": "success",
             "archive": row,
@@ -644,8 +759,8 @@ async def get_archive_detail(archive_id: str):
                     "topic": row.get("topic", "Latihan Soal"),
                     "slug": _clean_filename(row.get("filename", "latihan-soal")),
                 },
-                "master_quiz": row.get("master_quiz", {"title": "Latihan Soal Utama", "questions": []}),
-                "alternatives": row.get("alternatives", []),
+                "master_quiz": norm_master,
+                "alternatives": norm_alts,
             },
         }
     except HTTPException:
@@ -664,18 +779,30 @@ class ExportDocxRequest(BaseModel):
     quiz_data: dict
 
 
-def _insert_image_if_exists(doc: docx.Document, image_file: Optional[str], width_cm: float = 6.5):
-    if not image_file:
-        return
-    safe_name = os.path.basename(image_file)
-    img_path = os.path.join(MEDIA_DIR, safe_name)
-    if os.path.exists(img_path):
+def _insert_image_if_exists(doc: docx.Document, image_file: Optional[str], image_url: Optional[str] = None, width_cm: float = 6.5):
+    img_source = None
+    if image_file:
+        safe_name = os.path.basename(image_file)
+        img_path = os.path.join(MEDIA_DIR, safe_name)
+        if os.path.exists(img_path):
+            img_source = img_path
+
+    if img_source is None:
+        candidate_url = _normalize_media_url(image_url, image_file)
+        if candidate_url.startswith("http://") or candidate_url.startswith("https://"):
+            try:
+                with urllib.request.urlopen(candidate_url, timeout=15) as resp:
+                    img_source = io.BytesIO(resp.read())
+            except Exception:
+                img_source = None
+
+    if img_source is not None:
         try:
             p_img = doc.add_paragraph()
             p_img.paragraph_format.left_indent = Cm(0.75)
             p_img.paragraph_format.space_before = Pt(2)
             p_img.paragraph_format.space_after = Pt(4)
-            p_img.add_run().add_picture(img_path, width=Cm(width_cm))
+            p_img.add_run().add_picture(img_source, width=Cm(width_cm))
         except Exception:
             pass
 
@@ -948,21 +1075,33 @@ async def export_quiz_to_docx(payload: ExportDocxRequest):
                 if isinstance(q.get("image_files"), list) and q.get("image_files")
                 else ([q.get("image_file")] if q.get("image_file") else [])
             )
-            for qf in q_files_to_print:
-                _insert_image_if_exists(doc, qf, width_cm=7.0)
+            q_urls_to_print = (
+                q.get("image_urls")
+                if isinstance(q.get("image_urls"), list) and q.get("image_urls")
+                else ([q.get("image_url")] if q.get("image_url") else [])
+            )
+            max_q_imgs = max(len(q_files_to_print), len(q_urls_to_print))
+            for img_i in range(max_q_imgs):
+                qf = q_files_to_print[img_i] if img_i < len(q_files_to_print) else None
+                qu = q_urls_to_print[img_i] if img_i < len(q_urls_to_print) else None
+                _insert_image_if_exists(doc, qf, qu, width_cm=7.0)
+
             _insert_table_if_exists(doc, q.get("table_rows"))
 
             if group_type == "pg":
                 opts = q.get("options") if isinstance(q.get("options"), list) else []
                 opt_files = q.get("option_image_files") if isinstance(q.get("option_image_files"), list) else []
+                opt_urls = q.get("option_image_urls") if isinstance(q.get("option_image_urls"), list) else []
                 for o_idx, opt in enumerate(opts):
                     clean_opt = _strip_bracket_tags(str(opt))
                     p_opt = doc.add_paragraph(clean_opt)
                     p_opt.paragraph_format.left_indent = Cm(0.75)
                     p_opt.paragraph_format.space_before = Pt(1)
                     p_opt.paragraph_format.space_after = Pt(1)
-                    if o_idx < len(opt_files) and opt_files[o_idx]:
-                        _insert_image_if_exists(doc, opt_files[o_idx], width_cm=4.5)
+                    of = opt_files[o_idx] if o_idx < len(opt_files) else None
+                    ou = opt_urls[o_idx] if o_idx < len(opt_urls) else None
+                    if of or ou:
+                        _insert_image_if_exists(doc, of, ou, width_cm=4.5)
 
                 ans = q.get("answer") or "-"
                 exp = _strip_bracket_tags(q.get("explanation") or "")
@@ -1038,13 +1177,14 @@ class PublishQuizRequest(BaseModel):
 async def publish_quiz(payload: PublishQuizRequest, request: Request):
     try:
         clean_title = _clean_display_title(payload.title, fallback=payload.topic or "Latihan Soal")
+        normalized_quiz_data = _normalize_quiz_media_urls(payload.quiz_data)
         insert_data = {
             "title": clean_title,
             "subject": payload.subject,
             "grade": payload.grade,
             "topic": payload.topic,
             "slug": payload.slug,
-            "quiz_data": payload.quiz_data,
+            "quiz_data": normalized_quiz_data,
             "user_id": payload.user_id,
             "is_published": True,
         }
@@ -1076,7 +1216,12 @@ async def get_quiz_by_slug(slug: str):
         if not response.data:
             raise HTTPException(status_code=404, detail="Kuis tidak ditemukan")
 
-        return response.data[0]
+        row = response.data[0]
+        if isinstance(row.get("quiz_data"), dict):
+            row["quiz_data"] = _normalize_quiz_media_urls(row["quiz_data"])
+        return row
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
