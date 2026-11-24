@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hubungi Kami — Kuisia Creator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-paper: #F3EAD8;
+      --bg-card: #FFFDF8;
+      --bg-subtle: #EAE0CC;
+      --ink: #181818;
+      --ink-muted: #4A463F;
+      --accent-orange: #F26419;
+      --accent-orange-dark: #D9530E;
+      --accent-yellow: #F6AE2D;
+      --accent-green: #2E9E5B;
+      --border: 2.5px solid #181818;
+      --shadow-sm: 3px 3px 0px #181818;
+      --shadow-md: 5px 5px 0px #181818;
+      --shadow-lg: 7px 7px 0px #181818;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-paper);
+      color: var(--ink);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, .brand-font {
+      font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
+      letter-spacing: -0.02em;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    header {
+      padding: 18px 0;
+    }
+
+    .nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--bg-card);
+      border: var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: 10px 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--ink);
+      font-weight: 800;
+      font-size: 1rem;
+    }
+
+    .brand-badge {
+      background: var(--accent-yellow);
+      border: 2px solid #181818;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .lang-toggle {
+      display: inline-flex;
+      border: 2px solid #181818;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--bg-paper);
+    }
+
+    .lang-toggle button {
+      border: none;
+      background: transparent;
+      color: var(--ink);
+      font-weight: 700;
+      font-size: 0.78rem;
+      padding: 6px 10px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .lang-toggle button.active {
+      background: var(--accent-yellow);
+      color: var(--ink);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.86rem;
+      padding: 9px 16px;
+      border: 2px solid #181818;
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .btn:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0px #181818;
+    }
+
+    .btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px #181818;
+    }
+
+    .btn-orange {
+      background: var(--accent-orange);
+      color: #FFFFFF;
+    }
+
+    .btn-yellow {
+      background: var(--accent-yellow);
+      color: var(--ink);
+    }
+
+    .btn-white {
+      background: var(--bg-card);
+      color: var(--ink);
+    }
+
+    .page-hero {
+      padding: 28px 0 22px;
+      text-align: center;
+    }
+
+    .pill-tag {
+      display: inline-block;
+      background: var(--accent-yellow);
+      border: 2px solid #181818;
+      border-radius: 999px;
+      padding: 3px 12px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+
+    .page-hero h1 {
+      font-size: clamp(1.9rem, 4vw, 2.7rem);
+      line-height: 1.15;
+      margin-bottom: 10px;
+    }
+
+    .page-hero p {
+      font-size: 0.98rem;
+      color: var(--ink-muted);
+      max-width: 620px;
+      margin: 0 auto;
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 22px;
+      margin-bottom: 48px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      padding: 24px;
+    }
+
+    .card h2 {
+      font-size: 1.3rem;
+      margin-bottom: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .form-control {
+      width: 100%;
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 10px 12px;
+      background: var(--bg-paper);
+      color: var(--ink);
+      border: 2px solid #181818;
+      border-radius: var(--radius-sm);
+    }
+
+    .form-control:focus {
+      outline: none;
+      background: #FFF7E0;
+    }
+
+    textarea.form-control {
+      min-height: 115px;
+      resize: vertical;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .notice-box {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border: 2px solid #181818;
+      border-radius: var(--radius-sm);
+      background: #E3F5EB;
+      color: #146C43;
+      font-size: 0.86rem;
+      font-weight: 600;
+    }
+
+    .info-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .info-item {
+      background: var(--bg-paper);
+      border: 2px solid #181818;
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+    }
+
+    .info-label {
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--accent-orange-dark);
+      margin-bottom: 3px;
+    }
+
+    .info-val {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .info-val a {
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    footer {
+      text-align: center;
+      padding: 18px 0 32px;
+      font-size: 0.78rem;
+      color: var(--ink-muted);
+    }
+
+    @media (max-width: 780px) {
+      .contact-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav class="nav-bar">
+        <a href="/" class="brand">
+          <span class="brand-badge">EDU HUB</span>
+          <span>KUISIA CREATOR</span>
+        </a>
+        <div class="nav-actions">
+          <div class="lang-toggle" role="group" aria-label="Language switcher">
+            <button type="button" data-lang="id">ID</button>
+            <button type="button" data-lang="en">EN</button>
+          </div>
+          <a href="/" class="btn btn-white" data-i18n="navHome">Beranda</a>
+          <a href="/pricing.html" class="btn btn-yellow" data-i18n="navPricing">Harga</a>
+          <a href="/contact.html" class="btn btn-orange" data-i18n="navContact">Hubungi Kami</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="page-hero">
+      <span class="pill-tag" data-i18n="heroPill">Dukungan &amp; Penawaran Sekolah</span>
+      <h1 data-i18n="heroTitle">Hubungi Tim Kuisia Edu Hub</h1>
+      <p data-i18n="heroSub">Butuh aktivasi Trial Premium, paket akun guru untuk sekolah, atau bantuan teknis konversi soal Word (.docx)? Kirimkan pesan Anda di bawah ini.</p>
+    </section>
+
+    <section class="contact-grid">
+      <div class="card">
+        <h2 data-i18n="formTitle">Kirim Pesan / Permintaan Paket</h2>
+        <form id="contactForm">
+          <div class="form-group">
+            <label for="senderName" data-i18n="lblName">Nama Lengkap</label>
+            <input type="text" id="senderName" class="form-control" required placeholder="Contoh: Budi Santoso, S.Pd." />
+          </div>
+
+          <div class="form-group">
+            <label for="senderEmail" data-i18n="lblEmail">Email</label>
+            <input type="email" id="senderEmail" class="form-control" required placeholder="nama@sekolah.sch.id" />
+          </div>
+
+          <div class="form-group">
+            <label for="schoolName" data-i18n="lblSchool">Nama Sekolah / Lembaga (Opsional)</label>
+            <input type="text" id="schoolName" class="form-control" placeholder="Contoh: SDN 1 Krian / SMP Negeri 2" />
+          </div>
+
+          <div class="form-group">
+            <label for="planTopic" data-i18n="lblPlan">Topik / Paket yang Diminati</label>
+            <select id="planTopic" class="form-control">
+              <option value="trial" data-i18n="optTrial">Trial Premium (7 Hari — Mode Lengkap)</option>
+              <option value="premium-monthly" data-i18n="optProMonthly">Premium Guru Bulanan (~Rp75.000/bln)</option>
+              <option value="premium-yearly" data-i18n="optProYearly">Premium Guru Tahunan (~Rp750.000/thn)</option>
+              <option value="school-small" data-i18n="optSchoolSmall">Paket Sekolah Kecil (s.d. 5 Guru)</option>
+              <option value="school-medium" data-i18n="optSchoolMed">Paket Sekolah Menengah (s.d. 15 Guru)</option>
+              <option value="school-custom" data-i18n="optSchoolCustom">Paket Sekolah Besar / Yayasan (30+ Guru)</option>
+              <option value="support" data-i18n="optSupport">Bantuan Teknis / Pertanyaan Umum</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="messageBody" data-i18n="lblMessage">Pesan &amp; Kebutuhan</label>
+            <textarea id="messageBody" class="form-control" required placeholder="Tuliskan jumlah guru, jenjang kelas, atau kendala yang ingin didiskusikan..."></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-orange" data-i18n="btnSendEmail">Kirim via Email</button>
+            <button type="button" id="copyInquiryBtn" class="btn btn-white" data-i18n="btnCopyMsg">Salin Ringkasan Pesan</button>
+          </div>
+
+          <div id="contactNotice" class="notice-box"></div>
+        </form>
+      </div>
+
+      <div class="info-stack">
+        <div class="card">
+          <h2 data-i18n="infoTitle">Informasi Kontak</h2>
+          <div class="info-stack">
+            <div class="info-item">
+              <div class="info-label" data-i18n="lblFounder">Pengelola / Founder</div>
+              <div class="info-val">Firman A. Prasetyo</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Email</div>
+              <div class="info-val"><a href="mailto:firman.a.prasetyo@gmail.com">firman.a.prasetyo@gmail.com</a></div>
+            </div>
+            <div class="info-item">
+              <div class="info-label" data-i18n="lblArea">Layanan</div>
+              <div class="info-val" data-i18n="valArea">Guru &amp; Sekolah Seluruh Indonesia (Online)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 data-i18n="nextTitle">Langkah Selanjutnya</h2>
+          <p style="font-size:0.88rem; color:var(--ink-muted); margin-bottom:14px;" data-i18n="nextDesc">
+            Ingin meninjau rincian kuota harian (3x upload standar gratis, trial Mode Lengkap, hingga 20x upload/hari di Premium) sebelum menghubungi kami?
+          </p>
+          <a href="/pricing.html" class="btn btn-yellow" data-i18n="btnBackPricing">Lihat Halaman Harga</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      KUISIA CREATOR &copy; 2026 &mdash; AI Word to Quiz Generator
+    </div>
+  </footer>
+
+  <script>
+    const CONTACT_I18N = {
+      id: {
+        navHome: "Beranda",
+        navPricing: "Harga",
+        navContact: "Hubungi Kami",
+        heroPill: "Dukungan & Penawaran Sekolah",
+        heroTitle: "Hubungi Tim Kuisia Edu Hub",
+        heroSub: "Butuh aktivasi Trial Premium, paket akun guru untuk sekolah, atau bantuan teknis konversi soal Word (.docx)? Kirimkan pesan Anda di bawah ini.",
+        formTitle: "Kirim Pesan / Permintaan Paket",
+        lblName: "Nama Lengkap",
+        lblEmail: "Email",
+        lblSchool: "Nama Sekolah / Lembaga (Opsional)",
+        lblPlan: "Topik / Paket yang Diminati",
+        optTrial: "Trial Premium (7 Hari — Mode Lengkap)",
+        optProMonthly: "Premium Guru Bulanan (~Rp75.000/bln)",
+        optProYearly: "Premium Guru Tahunan (~Rp750.000/thn)",
+        optSchoolSmall: "Paket Sekolah Kecil (s.d. 5 Guru)",
+        optSchoolMed: "Paket Sekolah Menengah (s.d. 15 Guru)",
+        optSchoolCustom: "Paket Sekolah Besar / Yayasan (30+ Guru)",
+        optSupport: "Bantuan Teknis / Pertanyaan Umum",
+        lblMessage: "Pesan & Kebutuhan",
+        btnSendEmail: "Kirim via Email",
+        btnCopyMsg: "Salin Ringkasan Pesan",
+        infoTitle: "Informasi Kontak",
+        lblFounder: "Pengelola / Founder",
+        lblArea: "Layanan",
+        valArea: "Guru & Sekolah Seluruh Indonesia (Online)",
+        nextTitle: "Langkah Selanjutnya",
+        nextDesc: "Ingin meninjau rincian kuota harian (3x upload standar gratis, trial Mode Lengkap, hingga 20x upload/hari di Premium) sebelum menghubungi kami?",
+        btnBackPricing: "Lihat Halaman Harga",
+        msgMailOpened: "Aplikasi email Anda sedang dibuka dengan draf pesan. Jika tidak terbuka otomatis, gunakan tombol Salin Ringkasan Pesan dan kirim ke firman.a.prasetyo@gmail.com.",
+        msgCopied: "Ringkasan pesan berhasil disalin ke clipboard."
+      },
+      en: {
+        navHome: "Home",
+        navPricing: "Pricing",
+        navContact: "Contact",
+        heroPill: "Support & School Inquiries",
+        heroTitle: "Contact Kuisia Edu Hub",
+        heroSub: "Need a Premium Trial, school teacher accounts, or help converting Word (.docx) exams? Send your message below.",
+        formTitle: "Send Message / Plan Inquiry",
+        lblName: "Full Name",
+        lblEmail: "Email",
+        lblSchool: "School / Institution (Optional)",
+        lblPlan: "Topic / Selected Plan",
+        optTrial: "Trial Premium (7 Days — Full Mode)",
+        optProMonthly: "Monthly Teacher Plan (~Rp75.000/mo)",
+        optProYearly: "Yearly Teacher Plan (~Rp750.000/yr)",
+        optSchoolSmall: "Small School Bundle (up to 5 Teachers)",
+        optSchoolMed: "Medium School Bundle (up to 15 Teachers)",
+        optSchoolCustom: "Large School / Foundation (30+ Teachers)",
+        optSupport: "Technical Support / General Question",
+        lblMessage: "Message & Requirements",
+        btnSendEmail: "Send via Email",
+        btnCopyMsg: "Copy Message Summary",
+        infoTitle: "Contact Information",
+        lblFounder: "Founder / Builder",
+        lblArea: "Coverage",
+        valArea: "Teachers & Schools Across Indonesia (Online)",
+        nextTitle: "Next Step",
+        nextDesc: "Want to review daily quotas (3x free standard uploads, Full Mode trial, up to 20x uploads/day in Premium) before reaching out?",
+        btnBackPricing: "View Pricing Page",
+        msgMailOpened: "Your email client is opening with a pre-filled draft. If it doesn't open, copy the summary and email firman.a.prasetyo@gmail.com.",
+        msgCopied: "Message summary copied to clipboard."
+      }
+    };
+
+    let currentLang = "id";
+
+    function detectInitialLang() {
+      const saved = localStorage.getItem("kuisia_lang");
+      if (saved === "id" || saved === "en") return saved;
+      const langs = Array.isArray(navigator.languages) && navigator.languages.length
+        ? navigator.languages
+        : [navigator.language || ""];
+      if (langs.some((l) => String(l).toLowerCase().startsWith("id"))) return "id";
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+      if (["Asia/Jakarta", "Asia/Makassar", "Asia/Jayapura"].includes(tz)) return "id";
+      return "en";
+    }
+
+    function applyLang(lang) {
+      currentLang = lang === "en" ? "en" : "id";
+      localStorage.setItem("kuisia_lang", currentLang);
+      document.documentElement.lang = currentLang;
+      document.querySelectorAll(".lang-toggle [data-lang]").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-lang") === currentLang);
+      });
+      const dict = CONTACT_I18N[currentLang] || CONTACT_I18N.id;
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const key = el.getAttribute("data-i18n");
+        if (dict[key]) el.textContent = dict[key];
+      });
+    }
+
+    function buildSummaryText() {
+      const name = document.getElementById("senderName").value.trim() || "-";
+      const email = document.getElementById("senderEmail").value.trim() || "-";
+      const school = document.getElementById("schoolName").value.trim() || "-";
+      const selectEl = document.getElementById("planTopic");
+      const planLabel = selectEl.options[selectEl.selectedIndex]?.textContent || selectEl.value;
+      const msg = document.getElementById("messageBody").value.trim() || "-";
+
+      return [
+        `Nama: ${name}`,
+        `Email: ${email}`,
+        `Sekolah/Lembaga: ${school}`,
+        `Paket/Topik: ${planLabel}`,
+        `Pesan: ${msg}`
+      ].join("\n");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      applyLang(detectInitialLang());
+
+      const params = new URLSearchParams(window.location.search);
+      const planParam = params.get("plan");
+      if (planParam) {
+        const selectEl = document.getElementById("planTopic");
+        if ([...selectEl.options].some((o) => o.value === planParam)) {
+          selectEl.value = planParam;
+        }
+      }
+
+      document.querySelectorAll(".lang-toggle [data-lang]").forEach((btn) => {
+        btn.addEventListener("click", () => applyLang(btn.getAttribute("data-lang")));
+      });
+
+      const noticeEl = document.getElementById("contactNotice");
+      const dict = () => CONTACT_I18N[currentLang] || CONTACT_I18N.id;
+
+      document.getElementById("contactForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const selectEl = document.getElementById("planTopic");
+        const planLabel = selectEl.options[selectEl.selectedIndex]?.textContent || selectEl.value;
+        const subject = encodeURIComponent(`[Kuisia Edu Hub] ${planLabel}`);
+        const body = encodeURIComponent(buildSummaryText());
+        window.location.href = `mailto:firman.a.prasetyo@gmail.com?subject=${subject}&body=${body}`;
+        noticeEl.style.display = "block";
+        noticeEl.textContent = dict().msgMailOpened;
+      });
+
+      document.getElementById("copyInquiryBtn").addEventListener("click", async () => {
+        const text = buildSummaryText();
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+          }
+          noticeEl.style.display = "block";
+          noticeEl.textContent = dict().msgCopied;
+        } catch (err) {
+          noticeEl.style.display = "block";
+          noticeEl.textContent = text;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
