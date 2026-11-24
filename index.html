@@ -658,14 +658,7 @@
       height: 112px;
       border-radius: 14px;
       border: var(--border);
-      background: var(--accent-orange);
-      color: #FFFFFF;
-      font-family: 'Space Grotesk', sans-serif;
-      font-weight: 800;
-      font-size: 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background: var(--accent-yellow);
       flex-shrink: 0;
       overflow: hidden;
     }
@@ -674,6 +667,7 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      object-position: center top;
     }
 
     .founder-bio p {
@@ -793,23 +787,6 @@
       margin-bottom: 10px;
       flex-wrap: wrap;
     }
-
-    .founder-avatar {
-        width: 112px;
-        height: 112px;
-        border-radius: 14px;
-        border: var(--border);
-        background: var(--accent-yellow);
-        flex-shrink: 0;
-        overflow: hidden;
-        }
-
-        .founder-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center top;
-        }
 
     footer {
       text-align: center;
@@ -952,11 +929,19 @@
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button type="button" id="exportDocxBtn" class="btn btn-white" data-i18n="btnExportDocx">Unduh .docx</button>
               <button type="button" id="publishQuizBtn" class="btn btn-orange" data-i18n="btnPublish">Bagikan Link Kuis</button>
+              <button type="button" id="closeWorkspaceTopBtn" class="btn btn-white" data-i18n="btnClose">Tutup</button>
             </div>
           </div>
           <div id="shareResultBox" class="status-box" style="margin-bottom:14px;"></div>
           <div id="packageTabs" class="package-tabs"></div>
           <div id="questionsContainer"></div>
+          <div id="workspacePaginationBar" style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-top:16px; padding-top:14px; border-top:2px solid #181818;">
+            <span id="visibleCountLabel" style="font-size:0.85rem; font-weight:700; color:var(--ink-muted);"></span>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button type="button" id="loadMoreQuestionsBtn" class="btn btn-yellow" data-i18n="btnShowMore">Lihat Lebih Banyak</button>
+              <button type="button" id="closeWorkspaceBottomBtn" class="btn btn-white" data-i18n="btnClose">Tutup</button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -1091,6 +1076,9 @@
         dropSub: "Maksimal 1 dokumen .docx per proses",
         btnExportDocx: "Unduh .docx",
         btnPublish: "Bagikan Link Kuis",
+        btnShowMore: "Lihat Lebih Banyak",
+        btnClose: "Tutup",
+        msgShowingCount: "Menampilkan {shown} dari {total} soal",
         aboutTitle: "Apa itu Kuisia Edu Hub?",
         aboutP1: "Kuisia Edu Hub adalah asisten penyusun soal berbasis AI yang membantu guru, dosen, dan lembaga pendidikan mengubah naskah ujian Microsoft Word (.docx) menjadi kuis online interaktif secara instan.",
         aboutP2: "Tidak perlu menyalin soal satu per satu. Sistem mengekstrak struktur bacaan, tabel, dan gambar secara utuh, membuat variasi soal otomatis, sekaligus menyiapkan tautan latihan yang siap dikerjakan siswa di perangkat apa pun.",
@@ -1138,6 +1126,9 @@
         dropSub: "1 .docx document per upload",
         btnExportDocx: "Download .docx",
         btnPublish: "Share Quiz Link",
+        btnShowMore: "Show More",
+        btnClose: "Close",
+        msgShowingCount: "Showing {shown} of {total} questions",
         aboutTitle: "So, what is Kuisia Edu Hub?",
         aboutP1: "Kuisia Edu Hub is an AI-powered assessment builder that helps teachers, lecturers, and educators turn Microsoft Word (.docx) exam sheets into interactive online quizzes in seconds.",
         aboutP2: "No more copy-pasting questions one by one. The system preserves reading passages, tables, and images, generates fresh question variations automatically, and creates ready-to-share test links for any device.",
@@ -1172,10 +1163,12 @@
       }
     };
 
+    const INITIAL_VISIBLE_QUESTIONS = 5;
     let currentLang = "id";
     let isPremiumMode = false;
     let currentBundle = null;
     let activePackageIndex = 0;
+    let visibleQuestionCount = INITIAL_VISIBLE_QUESTIONS;
 
     function detectInitialLang() {
       const saved = localStorage.getItem("kuisia_lang");
@@ -1207,6 +1200,9 @@
           el.textContent = I18N[currentLang][key];
         }
       });
+      if (currentBundle) {
+        renderQuestions();
+      }
     }
 
     function getPackagesList() {
@@ -1219,9 +1215,15 @@
       return list;
     }
 
+    function closeWorkspace() {
+      const panel = document.getElementById("workspacePanel");
+      panel.classList.remove("visible");
+    }
+
     function renderWorkspace(bundle) {
       currentBundle = bundle;
       activePackageIndex = 0;
+      visibleQuestionCount = INITIAL_VISIBLE_QUESTIONS;
       const panel = document.getElementById("workspacePanel");
       const meta = bundle.metadata || {};
       document.getElementById("wsTitle").textContent = meta.topic || "Latihan Soal";
@@ -1244,6 +1246,7 @@
         btn.textContent = pkg.title || `Paket ${idx + 1}`;
         btn.addEventListener("click", () => {
           activePackageIndex = idx;
+          visibleQuestionCount = INITIAL_VISIBLE_QUESTIONS;
           renderPackageTabs();
           renderQuestions();
         });
@@ -1253,12 +1256,28 @@
 
     function renderQuestions() {
       const container = document.getElementById("questionsContainer");
+      const moreBtn = document.getElementById("loadMoreQuestionsBtn");
+      const countLabel = document.getElementById("visibleCountLabel");
       container.innerHTML = "";
+
       const packages = getPackagesList();
       const pkg = packages[activePackageIndex];
-      if (!pkg || !Array.isArray(pkg.questions)) return;
+      const allQuestions = (pkg && Array.isArray(pkg.questions)) ? pkg.questions : [];
+      const totalQuestions = allQuestions.length;
+      const shownQuestions = allQuestions.slice(0, visibleQuestionCount);
 
-      pkg.questions.forEach((q, idx) => {
+      if (countLabel) {
+        const templateText = I18N[currentLang].msgShowingCount || "Menampilkan {shown} dari {total} soal";
+        countLabel.textContent = templateText
+          .replace("{shown}", String(shownQuestions.length))
+          .replace("{total}", String(totalQuestions));
+      }
+
+      if (moreBtn) {
+        moreBtn.style.display = shownQuestions.length < totalQuestions ? "inline-flex" : "none";
+      }
+
+      shownQuestions.forEach((q, idx) => {
         const card = document.createElement("div");
         card.className = "q-preview-card";
 
@@ -1417,6 +1436,12 @@
       document.getElementById("openArchiveBtn").addEventListener("click", openArchivesModal);
       document.getElementById("closeArchiveBtn").addEventListener("click", () => {
         document.getElementById("archiveModal").classList.remove("open");
+      });
+      document.getElementById("closeWorkspaceTopBtn").addEventListener("click", closeWorkspace);
+      document.getElementById("closeWorkspaceBottomBtn").addEventListener("click", closeWorkspace);
+      document.getElementById("loadMoreQuestionsBtn").addEventListener("click", () => {
+        visibleQuestionCount += INITIAL_VISIBLE_QUESTIONS;
+        renderQuestions();
       });
 
       document.getElementById("exportDocxBtn").addEventListener("click", async () => {

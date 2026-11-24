@@ -196,7 +196,29 @@
             <div id="final-score-box" class="inline-block text-3xl font-display font-bold px-8 py-4 rounded-md mb-4" style="background-color: var(--accent-secondary); color: var(--ink-primary); border: 2px solid var(--border-color); box-shadow: var(--shadow-offset-sm);">
                 0 / 100
             </div>
-            <p class="text-xs" style="color: var(--ink-secondary);">Gulir ke atas untuk melihat pembahasan &amp; kunci jawaban setiap nomor.</p>
+            <p class="text-xs mb-6" style="color: var(--ink-secondary);">Gulir ke atas untuk melihat pembahasan &amp; kunci jawaban setiap nomor.</p>
+
+            <div id="share-achievement-box" class="pt-5" style="border-top: 2px dashed var(--border-color);">
+                <p class="text-xs font-display font-bold uppercase tracking-wider mb-3" style="color: var(--ink-secondary);">Bagikan Pencapaian Kuis</p>
+                <div class="flex flex-wrap justify-center gap-2.5">
+                    <a id="share-fb-btn" href="#" target="_blank" rel="noopener noreferrer" class="rf-option px-3.5 py-2 text-xs font-display font-bold inline-flex items-center gap-1.5">
+                        Facebook
+                    </a>
+                    <a id="share-x-btn" href="#" target="_blank" rel="noopener noreferrer" class="rf-option px-3.5 py-2 text-xs font-display font-bold inline-flex items-center gap-1.5">
+                        X (Twitter)
+                    </a>
+                    <a id="share-wa-btn" href="#" target="_blank" rel="noopener noreferrer" class="rf-option px-3.5 py-2 text-xs font-display font-bold inline-flex items-center gap-1.5">
+                        WhatsApp
+                    </a>
+                    <button type="button" id="share-ig-copy-btn" onclick="copyAchievementForSocial('ig')" class="rf-option px-3.5 py-2 text-xs font-display font-bold inline-flex items-center gap-1.5 cursor-pointer">
+                        Instagram (Salin Teks)
+                    </button>
+                    <button type="button" id="share-native-btn" onclick="shareNativeAchievement()" class="hidden rf-option px-3.5 py-2 text-xs font-display font-bold inline-flex items-center gap-1.5 cursor-pointer">
+                        Lainnya
+                    </button>
+                </div>
+                <p id="share-feedback-msg" class="text-xs font-semibold mt-3 hidden" style="color: var(--status-success-text);"></p>
+            </div>
         </div>
 
     </main>
@@ -530,7 +552,78 @@
             finalScoreBox.textContent = `Uraian Selesai`;
         }
 
+        setupAchievementShare(studentName, finalScoreBox.textContent.trim());
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    let lastShareText = '';
+    const currentQuizUrl = window.location.href;
+
+    function setupAchievementShare(studentName, scoreSummaryText) {
+        const quizTitle = document.getElementById('quiz-title').textContent.trim() || 'Kuis Interaktif';
+        lastShareText = `Saya (${studentName}) baru menyelesaikan "${quizTitle}" di Kuisia Edu Hub — ${scoreSummaryText}! Yuk coba juga:`;
+
+        const encodedText = encodeURIComponent(lastShareText);
+        const encodedUrl = encodeURIComponent(currentQuizUrl);
+
+        const fbBtn = document.getElementById('share-fb-btn');
+        const xBtn = document.getElementById('share-x-btn');
+        const waBtn = document.getElementById('share-wa-btn');
+        const nativeBtn = document.getElementById('share-native-btn');
+
+        if (fbBtn) {
+            fbBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`;
+        }
+        if (xBtn) {
+            xBtn.href = `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
+        }
+        if (waBtn) {
+            waBtn.href = `https://wa.me/?text=${encodeURIComponent(lastShareText + ' ' + currentQuizUrl)}`;
+        }
+        if (nativeBtn && navigator.share) {
+            nativeBtn.classList.remove('hidden');
+        }
+    }
+
+    async function copyAchievementForSocial(platform) {
+        const fullText = `${lastShareText} ${currentQuizUrl}`.trim();
+        const feedbackEl = document.getElementById('share-feedback-msg');
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(fullText);
+            } else {
+                const tempInput = document.createElement('textarea');
+                tempInput.value = fullText;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+            }
+            if (feedbackEl) {
+                feedbackEl.textContent = platform === 'ig'
+                    ? 'Teks pencapaian disalin! Silakan tempel (paste) di Instagram Story atau caption postingan Anda.'
+                    : 'Teks pencapaian berhasil disalin ke clipboard.';
+                feedbackEl.classList.remove('hidden');
+            }
+        } catch (err) {
+            if (feedbackEl) {
+                feedbackEl.textContent = 'Gagal menyalin otomatis. Silakan salin tautan secara manual.';
+                feedbackEl.classList.remove('hidden');
+            }
+        }
+    }
+
+    async function shareNativeAchievement() {
+        if (!navigator.share) return;
+        try {
+            await navigator.share({
+                title: document.title || 'Hasil Kuis',
+                text: lastShareText,
+                url: currentQuizUrl
+            });
+        } catch (err) {
+            // User cancelled share sheet
+        }
     }
 
     loadQuiz();
