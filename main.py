@@ -1,13 +1,11 @@
 import asyncio
-import hashlib
+import base64
 import io
 import json
 import os
 import re
 import tempfile
 import time
-import urllib.parse
-import urllib.request
 import uuid
 from typing import Optional
 
@@ -19,7 +17,7 @@ from docx.oxml.ns import qn
 from docx.shared import Cm, Pt
 from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from google import genai
 from google.genai import types
 from pydantic import BaseModel
@@ -39,17 +37,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MEDIA_DIR = os.path.join(BASE_DIR, "media_exports")
 os.makedirs(MEDIA_DIR, exist_ok=True)
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://gzeayqtnqwmxuwhccixl.supabase.co")
-SUPABASE_KEY = os.getenv(
-    "SUPABASE_KEY",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6ZWF5cXRucXdteHV3aGNjaXhsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5NDkxOTM3OCwiZXhwIjoyMTEwNDk1Mzc4fQ.TXWY-xSSj2YIeg_c42NA139kXw17y_fJUvpQo8Pklgc",
-)
+GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
+SUPABASE_URL = (os.getenv("SUPABASE_URL") or "").strip()
+SUPABASE_KEY = (os.getenv("SUPABASE_KEY") or "").strip()
 
-CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip()
-CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY", "").strip()
-CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET", "").strip()
-CLOUDINARY_FOLDER = "ai_quiz_media"
+if not GEMINI_API_KEY or not SUPABASE_URL or not SUPABASE_KEY:
+    raise RuntimeError("GEMINI_API_KEY, SUPABASE_URL, dan SUPABASE_KEY wajib diatur di environment.")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -66,156 +59,30 @@ async def serve_home():
     return "<h3>File index.html tidak ditemukan di folder server.</h3>"
 
 
-def _build_cloudinary_public_url(filename: str) -> Optional[str]:
-    if not CLOUDINARY_CLOUD_NAME or not filename:
-        return None
-    safe_name = os.path.basename(filename.strip())
-    stem, ext = os.path.splitext(safe_name)
-    if not stem:
-        return None
-    cloud_enc = urllib.parse.quote(CLOUDINARY_CLOUD_NAME)
-    public_id_enc = urllib.parse.quote(f"{CLOUDINARY_FOLDER}/{stem}", safe="/")
-    ext_suffix = ext.lower() if ext else ""
-    return f"https://res.cloudinary.com/{cloud_enc}/image/upload/{public_id_enc}{ext_suffix}"
+@app.get("/pricing.html", response_class=HTMLResponse)
+async def serve_pricing_page():
+    pricing_path = os.path.join(BASE_DIR, "pricing.html")
+    if os.path.exists(pricing_path):
+        with open(pricing_path, "r", encoding="utf-8") as f:
+            return f.read()
+    return HTMLResponse("<h3>File pricing.html tidak ditemukan di folder server.</h3>", status_code=404)
 
 
-def _upload_image_to_cloudinary(blob: bytes, public_id: str) -> Optional[str]:
-    if not (CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET):
-        return None
-
-    timestamp = str(int(time.time()))
-    params_to_sign = f"folder={CLOUDINARY_FOLDER}&public_id={public_id}&timestamp={timestamp}{CLOUDINARY_API_SECRET}"
-    signature = hashlib.sha1(params_to_sign.encode("utf-8")).hexdigest()
-
-    boundary = f"----WebKitFormBoundary{uuid.uuid4().hex}"
-    crlf = "\r\n"
-
-    def _part_field(name: str, value: str) -> bytes:
-        return (
-            f"--{boundary}{crlf}"
-            f'Content-Disposition: form-data; name="{name}"{crlf}{crlf}'
-            f"{value}{crlf}"
-        ).encode("utf-8")
-
-    body = bytearray()
-    body.extend(_part_field("api_key", CLOUDINARY_API_KEY))
-    body.extend(_part_field("timestamp", timestamp))
-    body.extend(_part_field("folder", CLOUDINARY_FOLDER))
-    body.extend(_part_field("public_id", public_id))
-    body.extend(_part_field("signature", signature))
-    body.extend(
-        (
-            f"--{boundary}{crlf}"
-            f'Content-Disposition: form-data; name="file"; filename="{public_id}.png"{crlf}'
-            f"Content-Type: application/octet-stream{crlf}{crlf}"
-        ).encode("utf-8")
-    )
-    body.extend(blob)
-    body.extend(f"{crlf}--{boundary}--{crlf}".encode("utf-8"))
-
-    upload_url = f"https://api.cloudinary.com/v1_1/{urllib.parse.quote(CLOUDINARY_CLOUD_NAME)}/image/upload"
-    req = urllib.request.Request(
-        upload_url,
-        data=bytes(body),
-        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
-        method="POST",
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            payload = json.loads(resp.read().decode("utf-8"))
-            return payload.get("secure_url")
-    except Exception as cloud_err:
-        print(f"Peringatan upload Cloudinary, fallback lokal: {cloud_err}")
-        return None
+@app.get("/contact.html", response_class=HTMLResponse)
+async def serve_contact_page():
+    contact_path = os.path.join(BASE_DIR, "contact.html")
+    if os.path.exists(contact_path):
+        with open(contact_path, "r", encoding="utf-8") as f:
+            return f.read()
+    return HTMLResponse("<h3>File contact.html tidak ditemukan di folder server.</h3>", status_code=404)
 
 
-def _normalize_media_url(raw_url: Optional[str], fallback_filename: Optional[str] = None) -> str:
-    val = (raw_url or "").strip()
-    fname = os.path.basename((fallback_filename or "").strip())
-
-    if val.startswith("http://127.0.0.1:8000/media/") or val.startswith("http://localhost:8000/media/"):
-        fname = os.path.basename(val)
-        val = ""
-
-    if val.startswith("http://") or val.startswith("https://"):
-        return val
-
-    if val.startswith("/media/"):
-        fname = os.path.basename(val)
-
-    if fname:
-        local_path = os.path.join(MEDIA_DIR, fname)
-        if os.path.exists(local_path):
-            return f"/media/{urllib.parse.quote(fname)}"
-        cloud_url = _build_cloudinary_public_url(fname)
-        if cloud_url:
-            return cloud_url
-        return f"/media/{urllib.parse.quote(fname)}"
-
-    return val
-
-
-def _normalize_quiz_media_urls(quiz_obj: dict) -> dict:
-    if not isinstance(quiz_obj, dict):
-        return quiz_obj
-    out = dict(quiz_obj)
-    questions = out.get("questions")
-    if not isinstance(questions, list):
-        return out
-
-    norm_questions = []
-    for q in questions:
-        if not isinstance(q, dict):
-            norm_questions.append(q)
-            continue
-        item = dict(q)
-
-        q_files = item.get("image_files") if isinstance(item.get("image_files"), list) else []
-        q_urls = item.get("image_urls") if isinstance(item.get("image_urls"), list) else []
-        max_q = max(len(q_files), len(q_urls))
-        if max_q > 0:
-            item["image_urls"] = [
-                _normalize_media_url(
-                    q_urls[i] if i < len(q_urls) else "",
-                    q_files[i] if i < len(q_files) else "",
-                )
-                for i in range(max_q)
-            ]
-
-        if item.get("image_url") or item.get("image_file"):
-            item["image_url"] = _normalize_media_url(item.get("image_url"), item.get("image_file"))
-
-        opt_files = item.get("option_image_files") if isinstance(item.get("option_image_files"), list) else []
-        opt_urls = item.get("option_image_urls") if isinstance(item.get("option_image_urls"), list) else []
-        max_opt = max(len(opt_files), len(opt_urls))
-        if max_opt > 0:
-            item["option_image_urls"] = [
-                _normalize_media_url(
-                    opt_urls[i] if i < len(opt_urls) else "",
-                    opt_files[i] if i < len(opt_files) else "",
-                )
-                for i in range(max_opt)
-            ]
-
-        if isinstance(item.get("pairs"), list):
-            norm_pairs = []
-            for p in item["pairs"]:
-                if not isinstance(p, dict):
-                    norm_pairs.append(p)
-                    continue
-                pd = dict(p)
-                if pd.get("left_image_url") or pd.get("left_image_file"):
-                    pd["left_image_url"] = _normalize_media_url(pd.get("left_image_url"), pd.get("left_image_file"))
-                if pd.get("right_image_url") or pd.get("right_image_file"):
-                    pd["right_image_url"] = _normalize_media_url(pd.get("right_image_url"), pd.get("right_image_file"))
-                norm_pairs.append(pd)
-            item["pairs"] = norm_pairs
-
-        norm_questions.append(item)
-
-    out["questions"] = norm_questions
-    return out
+@app.get("/founder-photo.png")
+async def serve_founder_photo():
+    photo_path = os.path.join(BASE_DIR, "firman.png")
+    if not os.path.exists(photo_path):
+        raise HTTPException(status_code=404, detail="Foto founder tidak ditemukan.")
+    return FileResponse(photo_path, media_type="image/png")
 
 
 def _normalize_grade(raw_grade: Optional[str]) -> str:
@@ -252,6 +119,7 @@ def _clean_display_title(title: Optional[str], fallback: str = "Latihan Soal") -
 
 def _strip_bracket_tags(text: str) -> str:
     cleaned = re.sub(r"\[[^\]]*\]", "", text or "")
+    cleaned = re.sub(r"\s+([.,!?;:])", r"\1", cleaned)
     return re.sub(r"\s{2,}", " ", cleaned).strip()
 
 
@@ -294,8 +162,62 @@ def _set_table_no_borders(table):
     tblPr.append(borders)
 
 
+def _persist_data_url_image(src: str, base_url: str) -> str:
+    """Menyimpan gambar data:image/...;base64,... ke MEDIA_DIR dan mengembalikan URL /media/<file>."""
+    if not isinstance(src, str) or not src.startswith("data:image/"):
+        return src
+    match = re.match(r"^data:image/([a-zA-Z0-9+.-]+);base64,(.+)$", src, flags=re.DOTALL)
+    if not match:
+        return src
+
+    sub_type = match.group(1).lower()
+    b64_data = match.group(2)
+    ext = ".png"
+    if "jpeg" in sub_type or "jpg" in sub_type:
+        ext = ".jpg"
+    elif "gif" in sub_type:
+        ext = ".gif"
+    elif "webp" in sub_type:
+        ext = ".webp"
+
+    try:
+        raw_bytes = base64.b64decode(b64_data)
+        filename = f"upimg_{uuid.uuid4().hex[:12]}{ext}"
+        save_path = os.path.join(MEDIA_DIR, filename)
+        with open(save_path, "wb") as f:
+            f.write(raw_bytes)
+        return f"{base_url.rstrip('/')}/media/{filename}"
+    except Exception:
+        return src
+
+
+def _sanitize_quiz_package_images(quiz_data: dict, base_url: str) -> dict:
+    if not isinstance(quiz_data, dict):
+        return {"title": "Latihan Soal", "questions": []}
+    pkg_copy = dict(quiz_data)
+    new_questions = []
+    for q in pkg_copy.get("questions") or []:
+        if not isinstance(q, dict):
+            continue
+        q_copy = dict(q)
+        raw_urls = q_copy.get("image_urls")
+        if isinstance(raw_urls, list) and raw_urls:
+            saved_urls = [_persist_data_url_image(u, base_url) for u in raw_urls if u]
+            q_copy["image_urls"] = saved_urls
+            q_copy["image_url"] = saved_urls[0] if saved_urls else ""
+            q_copy["image_files"] = [
+                os.path.basename(u.split("?")[0]) for u in saved_urls if "/media/" in u
+            ]
+        elif q_copy.get("image_url"):
+            saved_u = _persist_data_url_image(q_copy["image_url"], base_url)
+            q_copy["image_url"] = saved_u
+            q_copy["image_urls"] = [saved_u] if saved_u else []
+        new_questions.append(q_copy)
+    pkg_copy["questions"] = new_questions
+    return pkg_copy
+
+
 def _extract_images_from_xml_element(xml_element, doc_part, extracted_images: list) -> list:
-    """Mengekstrak gambar inline/drawing dari elemen XML paragraf atau sel tabel."""
     found_tags = []
     blip_ns = "http://schemas.openxmlformats.org/drawingml/2006/main"
     embed_attr = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed"
@@ -315,20 +237,16 @@ def _extract_images_from_xml_element(xml_element, doc_part, extracted_images: li
 
             img_idx = len(extracted_images) + 1
             tag = f"[IMG_{img_idx}]"
-            public_id = f"qimg_{uuid.uuid4().hex[:10]}_{img_idx}"
-            filename = f"{public_id}{ext}"
+            filename = f"qimg_{uuid.uuid4().hex[:10]}_{img_idx}{ext}"
             save_path = os.path.join(MEDIA_DIR, filename)
 
             with open(save_path, "wb") as img_f:
                 img_f.write(part.blob)
 
-            cloud_url = _upload_image_to_cloudinary(part.blob, public_id)
-            final_url = cloud_url if cloud_url else f"/media/{filename}"
-
             extracted_images.append({
                 "tag": tag,
                 "filename": filename,
-                "url": final_url,
+                "url": f"/media/{filename}",
                 "content_type": content_type,
                 "blob": part.blob,
             })
@@ -337,7 +255,6 @@ def _extract_images_from_xml_element(xml_element, doc_part, extracted_images: li
 
 
 def _extract_docx_content(doc: docx.Document, include_media: bool = False):
-    """Membaca paragraf dan tabel secara berurutan sesuai posisi aslinya di dokumen."""
     blocks = []
     extracted_images = []
 
@@ -381,39 +298,61 @@ def _extract_docx_content(doc: docx.Document, include_media: bool = False):
     return "\n".join(blocks), extracted_images
 
 
-def _generate_single_json(prompt: str, extra_parts: list = None, temperature: float = 0.35, max_tokens: int = 32768) -> dict:
+def _generate_single_json(
+    prompt: str,
+    extra_parts: list = None,
+    temperature: float = 0.35,
+    max_tokens: int = 32768,
+) -> dict:
     contents = [prompt]
     if extra_parts:
         contents.extend(extra_parts)
 
-    response = client.models.generate_content(
-        model="gemini-3.1-flash-lite",
-        contents=contents,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            temperature=temperature,
-            max_output_tokens=max_tokens,
-        ),
-    )
-    raw_text = (response.text or "").strip()
-    if raw_text.startswith("```"):
-        raw_text = re.sub(r"^```(?:json)?\s*", "", raw_text)
-        raw_text = re.sub(r"\s*```$", "", raw_text)
-    return json.loads(raw_text)
+    models_to_try = ["gemini-3.1-flash-lite", "gemini-3.8-flash"]
+    max_retries_per_model = 3
+    last_err = None
+
+    for model_name in models_to_try:
+        for attempt in range(max_retries_per_model):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        temperature=temperature,
+                        max_output_tokens=max_tokens,
+                    ),
+                )
+                raw_text = (response.text or "").strip()
+                if raw_text.startswith("```"):
+                    raw_text = re.sub(r"^```(?:json)?\s*", "", raw_text)
+                    raw_text = re.sub(r"\s*```$", "", raw_text)
+                return json.loads(raw_text)
+            except Exception as e:
+                last_err = e
+                err_str = str(e)
+                is_transient = (
+                    "503" in err_str
+                    or "UNAVAILABLE" in err_str
+                    or "429" in err_str
+                    or "RESOURCE_EXHAUSTED" in err_str
+                )
+                if is_transient and attempt < max_retries_per_model - 1:
+                    time.sleep(2 ** attempt)
+                    continue
+                break
+
+    raise last_err
 
 
 @app.get("/media/{filename}")
 async def serve_media_file(filename: str):
     safe_name = os.path.basename(filename)
     file_path = os.path.join(MEDIA_DIR, safe_name)
-    if os.path.exists(file_path):
-        return FileResponse(file_path)
-
-    cloud_url = _build_cloudinary_public_url(safe_name)
-    if cloud_url:
-        return RedirectResponse(url=cloud_url, status_code=307)
-
-    raise HTTPException(status_code=404, detail="File gambar tidak ditemukan.")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File gambar tidak ditemukan.")
+    return FileResponse(file_path)
 
 
 @app.post("/api/upload-quiz")
@@ -710,28 +649,96 @@ async def upload_and_process_quiz(
     }
 
 
+class CreateArchiveRequest(BaseModel):
+    topic: str = "Latihan Soal"
+    subject: str = "Umum"
+    grade: str = "Umum"
+    grade_detail: Optional[str] = ""
+    filename: Optional[str] = "latihan-soal.docx"
+    total_questions: Optional[int] = None
+    user_id: Optional[str] = None
+    data: dict
+
+
+@app.post("/api/archives")
+async def create_archive_record(payload: CreateArchiveRequest, request: Request):
+    try:
+        base_url = str(request.base_url).rstrip("/")
+        norm_grade = _normalize_grade(payload.grade)
+        bundle_data = payload.data if isinstance(payload.data, dict) else {}
+
+        raw_master = bundle_data.get("master_quiz") or {"title": "Latihan Soal Utama", "questions": []}
+        sanitized_master = _sanitize_quiz_package_images(raw_master, base_url)
+
+        raw_alts = bundle_data.get("alternatives") or []
+        sanitized_alts = [
+            _sanitize_quiz_package_images(alt, base_url)
+            for alt in raw_alts
+            if isinstance(alt, dict)
+        ]
+
+        q_count = (
+            payload.total_questions
+            if isinstance(payload.total_questions, int) and payload.total_questions >= 0
+            else len(sanitized_master.get("questions") or [])
+        )
+
+        safe_filename = payload.filename or f"{_clean_filename(payload.topic)}.docx"
+
+        archive_payload = {
+            "user_id": payload.user_id,
+            "filename": safe_filename,
+            "subject": payload.subject or "Umum",
+            "grade": norm_grade,
+            "topic": payload.topic or "Latihan Soal",
+            "total_questions": q_count,
+            "master_quiz": sanitized_master,
+            "alternatives": sanitized_alts,
+        }
+
+        res = supabase.table("document_archives").insert(archive_payload).execute()
+        if not res.data:
+            raise HTTPException(status_code=500, detail="Gagal menyimpan arsip dokumen ke database.")
+
+        saved_row = res.data[0]
+        return {
+            "status": "success",
+            "archive_id": saved_row.get("id"),
+            "archive": saved_row,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Gagal menyimpan arsip dokumen: {str(e)}")
+
+
 @app.get("/api/archives")
 async def list_archives(grade: Optional[str] = None):
     try:
-        query = (
+        res = (
             supabase.table("document_archives")
             .select("id, filename, subject, grade, topic, total_questions, created_at")
             .order("created_at", desc=True)
             .limit(200)
+            .execute()
         )
-        if grade and grade in ALLOWED_GRADES:
-            query = query.eq("grade", grade)
-
-        res = query.execute()
-        rows = res.data or []
+        all_rows = res.data or []
 
         counts = {g: 0 for g in ALLOWED_GRADES}
-        for r in rows:
-            g_norm = _normalize_grade(r.get("grade"))
-            r["grade"] = g_norm
+        normalized_rows = []
+        for r in all_rows:
+            row_copy = dict(r)
+            g_norm = _normalize_grade(row_copy.get("grade"))
+            row_copy["grade"] = g_norm
             counts[g_norm] = counts.get(g_norm, 0) + 1
+            normalized_rows.append(row_copy)
 
-        return {"status": "success", "counts": counts, "archives": rows}
+        if grade and grade in ALLOWED_GRADES:
+            filtered_rows = [r for r in normalized_rows if r["grade"] == grade]
+        else:
+            filtered_rows = normalized_rows
+
+        return {"status": "success", "counts": counts, "archives": filtered_rows}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gagal memuat arsip dokumen: {str(e)}")
 
@@ -743,12 +750,6 @@ async def get_archive_detail(archive_id: str):
         if not res.data:
             raise HTTPException(status_code=404, detail="Arsip dokumen tidak ditemukan.")
         row = res.data[0]
-        raw_master = row.get("master_quiz", {"title": "Latihan Soal Utama", "questions": []})
-        raw_alts = row.get("alternatives", [])
-
-        norm_master = _normalize_quiz_media_urls(raw_master)
-        norm_alts = [_normalize_quiz_media_urls(a) for a in raw_alts] if isinstance(raw_alts, list) else []
-
         return {
             "status": "success",
             "archive": row,
@@ -759,8 +760,8 @@ async def get_archive_detail(archive_id: str):
                     "topic": row.get("topic", "Latihan Soal"),
                     "slug": _clean_filename(row.get("filename", "latihan-soal")),
                 },
-                "master_quiz": norm_master,
-                "alternatives": norm_alts,
+                "master_quiz": row.get("master_quiz", {"title": "Latihan Soal Utama", "questions": []}),
+                "alternatives": row.get("alternatives", []),
             },
         }
     except HTTPException:
@@ -779,30 +780,18 @@ class ExportDocxRequest(BaseModel):
     quiz_data: dict
 
 
-def _insert_image_if_exists(doc: docx.Document, image_file: Optional[str], image_url: Optional[str] = None, width_cm: float = 6.5):
-    img_source = None
-    if image_file:
-        safe_name = os.path.basename(image_file)
-        img_path = os.path.join(MEDIA_DIR, safe_name)
-        if os.path.exists(img_path):
-            img_source = img_path
-
-    if img_source is None:
-        candidate_url = _normalize_media_url(image_url, image_file)
-        if candidate_url.startswith("http://") or candidate_url.startswith("https://"):
-            try:
-                with urllib.request.urlopen(candidate_url, timeout=15) as resp:
-                    img_source = io.BytesIO(resp.read())
-            except Exception:
-                img_source = None
-
-    if img_source is not None:
+def _insert_image_if_exists(doc: docx.Document, image_file: Optional[str], width_cm: float = 6.5):
+    if not image_file:
+        return
+    safe_name = os.path.basename(image_file)
+    img_path = os.path.join(MEDIA_DIR, safe_name)
+    if os.path.exists(img_path):
         try:
             p_img = doc.add_paragraph()
             p_img.paragraph_format.left_indent = Cm(0.75)
             p_img.paragraph_format.space_before = Pt(2)
             p_img.paragraph_format.space_after = Pt(4)
-            p_img.add_run().add_picture(img_source, width=Cm(width_cm))
+            p_img.add_run().add_picture(img_path, width=Cm(width_cm))
         except Exception:
             pass
 
@@ -1075,33 +1064,21 @@ async def export_quiz_to_docx(payload: ExportDocxRequest):
                 if isinstance(q.get("image_files"), list) and q.get("image_files")
                 else ([q.get("image_file")] if q.get("image_file") else [])
             )
-            q_urls_to_print = (
-                q.get("image_urls")
-                if isinstance(q.get("image_urls"), list) and q.get("image_urls")
-                else ([q.get("image_url")] if q.get("image_url") else [])
-            )
-            max_q_imgs = max(len(q_files_to_print), len(q_urls_to_print))
-            for img_i in range(max_q_imgs):
-                qf = q_files_to_print[img_i] if img_i < len(q_files_to_print) else None
-                qu = q_urls_to_print[img_i] if img_i < len(q_urls_to_print) else None
-                _insert_image_if_exists(doc, qf, qu, width_cm=7.0)
-
+            for qf in q_files_to_print:
+                _insert_image_if_exists(doc, qf, width_cm=7.0)
             _insert_table_if_exists(doc, q.get("table_rows"))
 
             if group_type == "pg":
                 opts = q.get("options") if isinstance(q.get("options"), list) else []
                 opt_files = q.get("option_image_files") if isinstance(q.get("option_image_files"), list) else []
-                opt_urls = q.get("option_image_urls") if isinstance(q.get("option_image_urls"), list) else []
                 for o_idx, opt in enumerate(opts):
                     clean_opt = _strip_bracket_tags(str(opt))
                     p_opt = doc.add_paragraph(clean_opt)
                     p_opt.paragraph_format.left_indent = Cm(0.75)
                     p_opt.paragraph_format.space_before = Pt(1)
                     p_opt.paragraph_format.space_after = Pt(1)
-                    of = opt_files[o_idx] if o_idx < len(opt_files) else None
-                    ou = opt_urls[o_idx] if o_idx < len(opt_urls) else None
-                    if of or ou:
-                        _insert_image_if_exists(doc, of, ou, width_cm=4.5)
+                    if o_idx < len(opt_files) and opt_files[o_idx]:
+                        _insert_image_if_exists(doc, opt_files[o_idx], width_cm=4.5)
 
                 ans = q.get("answer") or "-"
                 exp = _strip_bracket_tags(q.get("explanation") or "")
@@ -1176,15 +1153,17 @@ class PublishQuizRequest(BaseModel):
 @app.post("/api/publish-quiz")
 async def publish_quiz(payload: PublishQuizRequest, request: Request):
     try:
+        base_url = str(request.base_url).rstrip("/")
         clean_title = _clean_display_title(payload.title, fallback=payload.topic or "Latihan Soal")
-        normalized_quiz_data = _normalize_quiz_media_urls(payload.quiz_data)
+        sanitized_quiz = _sanitize_quiz_package_images(payload.quiz_data, base_url)
+
         insert_data = {
             "title": clean_title,
             "subject": payload.subject,
-            "grade": payload.grade,
+            "grade": _normalize_grade(payload.grade),
             "topic": payload.topic,
             "slug": payload.slug,
-            "quiz_data": normalized_quiz_data,
+            "quiz_data": sanitized_quiz,
             "user_id": payload.user_id,
             "is_published": True,
         }
@@ -1195,7 +1174,6 @@ async def publish_quiz(payload: PublishQuizRequest, request: Request):
             raise HTTPException(status_code=500, detail="Gagal menyimpan kuis ke database.")
 
         saved_quiz = response.data[0]
-        base_url = str(request.base_url).rstrip("/")
 
         return {
             "status": "success",
@@ -1216,12 +1194,7 @@ async def get_quiz_by_slug(slug: str):
         if not response.data:
             raise HTTPException(status_code=404, detail="Kuis tidak ditemukan")
 
-        row = response.data[0]
-        if isinstance(row.get("quiz_data"), dict):
-            row["quiz_data"] = _normalize_quiz_media_urls(row["quiz_data"])
-        return row
-    except HTTPException:
-        raise
+        return response.data[0]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1232,11 +1205,127 @@ async def serve_quiz_page(slug: str):
         with open(os.path.join(BASE_DIR, "quiz_template.html"), "r", encoding="utf-8") as f:
             return f.read()
     except Exception:
-        return "<h3>Template kuis tidak ditemukan di server.</h3>", 404
+        return HTMLResponse("<h3>Template kuis tidak ditemukan di server.</h3>", status_code=404)
 
-@app.get("/founder-photo.png")
-async def serve_founder_photo():
-    photo_path = os.path.join(BASE_DIR, "firman.png")
-    if not os.path.exists(photo_path):
-        raise HTTPException(status_code=404, detail="Foto founder tidak ditemukan.")
-    return FileResponse(photo_path, media_type="image/png")
+
+@app.get("/create-quiz", response_class=HTMLResponse)
+async def serve_create_quiz_page():
+    create_path = os.path.join(BASE_DIR, "create_quiz.html")
+    if os.path.exists(create_path):
+        with open(create_path, "r", encoding="utf-8") as f:
+            return f.read()
+    return HTMLResponse("<h3>File create_quiz.html tidak ditemukan di folder server.</h3>", status_code=404)
+
+
+class GenerateBriefQuizRequest(BaseModel):
+    subject: str
+    grade: str = "Umum"
+    grade_detail: Optional[str] = ""
+    topic: str
+    question_count: int = 10
+    question_types: list[str] = ["multiple_choice"]
+    chapters: Optional[list[dict]] = None
+    brief: str
+
+
+@app.post("/api/generate-quiz-brief")
+async def generate_quiz_from_brief(payload: GenerateBriefQuizRequest):
+    count = max(1, min(30, int(payload.question_count or 10)))
+    norm_grade = _normalize_grade(payload.grade)
+    allowed_types = [t for t in (payload.question_types or ["multiple_choice"]) if t in ("multiple_choice", "short_answer", "essay")]
+    if not allowed_types:
+        allowed_types = ["multiple_choice"]
+
+    chapters_info = ""
+    if payload.chapters:
+        chapters_info = "\n    - Rincian Bab/Topik:\n" + "\n".join(
+            [f"      * Bab {c.get('chapter_number', i+1)}: {c.get('title', '')} (~{c.get('question_count', '')} soal) — {c.get('detail', '')}" for i, c in enumerate(payload.chapters)]
+        )
+
+    prompt = f"""
+    Anda adalah pembuat soal pendidikan profesional di Indonesia.
+    Susun paket latihan soal baru berdasarkan informasi berikut ke dalam JSON murni.
+
+    - Mata Pelajaran: {payload.subject}
+    - Jenjang: {norm_grade}
+    - Kelas/Detail: {payload.grade_detail or "-"}
+    - Topik/Judul: {payload.topic}
+    - Jumlah Soal: {count} butir
+    - Jenis Soal yang Diizinkan: {", ".join(allowed_types)}{chapters_info}
+    - Brief / Materi / Catatan: {payload.brief}
+
+    ATURAN WAJIB:
+    1. Buat tepat {count} soal pada "master_quiz.questions" dengan tipe sesuai daftar jenis soal yang diizinkan dan merata/sesuai rincian bab/topik bila ada.
+    2. Untuk "multiple_choice", sediakan 4 opsi ("A. ...", "B. ...", "C. ...", "D. ...") dan isi "answer" (huruf A/B/C/D) serta "explanation".
+    3. Untuk "short_answer" dan "essay", set "options": [] dan isi "answer" serta "rubric".
+    4. Jangan gunakan tag tanda kurung siku seperti [IMG_1] atau [PG].
+    5. Buat 2 paket variasi di "alternatives": "Paket Variasi 1" dan "Paket Variasi 2", masing-masing dengan jumlah soal yang sama, redaksi berbeda, dan jika ada angka/perhitungan, WAJIB ubah nilai angkanya dan hitung ulang kunci jawaban serta pembahasannya agar tidak sama persis dengan soal utama maupun antar variasi.
+
+    Format JSON:
+    {{
+        "metadata": {{
+            "subject": "{payload.subject}",
+            "grade": "{norm_grade}",
+            "grade_detail": "{payload.grade_detail or ''}",
+            "topic": "{payload.topic}",
+            "slug": "{_clean_filename(payload.topic)}"
+        }},
+        "master_quiz": {{
+            "title": "Latihan Soal Utama",
+            "desc": "Paket soal hasil brief",
+            "questions": [
+                {{
+                    "type": "multiple_choice",
+                    "passage": "",
+                    "question": "...",
+                    "table_rows": [],
+                    "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
+                    "answer": "A",
+                    "explanation": "..."
+                }}
+            ]
+        }},
+        "alternatives": [
+            {{
+                "title": "Paket Variasi 1",
+                "desc": "Variasi redaksi dan angka/perhitungan baru",
+                "questions": []
+            }},
+            {{
+                "title": "Paket Variasi 2",
+                "desc": "Variasi lanjutan redaksi dan angka/perhitungan baru",
+                "questions": []
+            }}
+        ]
+    }}
+    """
+
+    try:
+        bundle = await asyncio.to_thread(_generate_single_json, prompt, None, 0.4, 32768)
+        meta = bundle.get("metadata") or {}
+        meta["grade"] = _normalize_grade(meta.get("grade") or norm_grade)
+        meta["subject"] = meta.get("subject") or payload.subject
+        meta["topic"] = meta.get("topic") or payload.topic
+        meta["slug"] = _clean_filename(meta.get("slug") or payload.topic)
+
+        master = bundle.get("master_quiz") or {"title": "Latihan Soal Utama", "questions": []}
+        master["title"] = _clean_display_title(master.get("title"), fallback="Latihan Soal Utama")
+        master["questions"] = master.get("questions") or []
+
+        alts = bundle.get("alternatives") or []
+        for idx, alt in enumerate(alts):
+            if not alt.get("title"):
+                alt["title"] = f"Paket Variasi {idx + 1}"
+            if not alt.get("questions"):
+                alt["questions"] = master["questions"]
+
+        return {
+            "status": "success",
+            "data": {
+                "metadata": meta,
+                "master_quiz": master,
+                "alternatives": alts,
+            },
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Gagal membuat soal dari brief: {str(e)}")

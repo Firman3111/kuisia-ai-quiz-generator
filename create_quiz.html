@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Buat Soal dari Topik &amp; Bab — Kuisia Edu Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-paper: #F3EAD8;
+      --bg-card: #FFFDF8;
+      --bg-subtle: #EAE0CC;
+      --ink: #181818;
+      --ink-muted: #4A463F;
+      --accent-orange: #F26419;
+      --accent-yellow: #F6AE2D;
+      --accent-green: #2E9E5B;
+      --border: 2.5px solid #181818;
+      --shadow-sm: 3px 3px 0px #181818;
+      --shadow-md: 5px 5px 0px #181818;
+      --shadow-lg: 7px 7px 0px #181818;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 18px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-paper);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
+      letter-spacing: -0.02em;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    header { padding: 18px 0; }
+
+    .nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--bg-card);
+      border: var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: 10px 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand-badge {
+      background: var(--accent-yellow);
+      border: 2px solid #181818;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-decoration: none;
+      color: var(--ink);
+      display: inline-block;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.86rem;
+      padding: 9px 16px;
+      border: 2px solid #181818;
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0px #181818;
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px #181818;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-orange { background: var(--accent-orange); color: #FFFFFF; padding: 12px 18px; }
+    .btn-yellow { background: var(--accent-yellow); color: var(--ink); }
+    .btn-green { background: var(--accent-green); color: #FFFFFF; padding: 11px 18px; }
+    .btn-white { background: var(--bg-card); color: var(--ink); }
+    .btn-danger { background: #FFE3DE; color: #9E1B0E; }
+
+    .form-card {
+      background: var(--bg-card);
+      border: var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: 28px 24px;
+      margin: 12px 0 36px;
+    }
+
+    .pill-tag {
+      display: inline-block;
+      background: var(--accent-yellow);
+      border: 2px solid #181818;
+      border-radius: 999px;
+      padding: 3px 12px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="url"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #181818;
+      border-radius: var(--radius-sm);
+      background: var(--bg-paper);
+      color: var(--ink);
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      background: #FFFDF8;
+      box-shadow: var(--shadow-sm);
+    }
+
+    textarea {
+      min-height: 105px;
+      resize: vertical;
+    }
+
+    .chapters-box {
+      background: var(--bg-paper);
+      border: 2px solid #181818;
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+
+    .chapters-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .chapter-item {
+      background: var(--bg-card);
+      border: 2px solid #181818;
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .chapter-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .chapter-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .chapter-badge {
+      background: var(--accent-yellow);
+      border: 1.5px solid #181818;
+      border-radius: 6px;
+      padding: 2px 9px;
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+
+    .chapter-fields {
+      display: grid;
+      grid-template-columns: 1fr 125px;
+      gap: 12px;
+    }
+
+    .type-checks {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding-top: 4px;
+    }
+
+    .check-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--bg-paper);
+      border: 2px solid #181818;
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .status-box {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border: 2px solid #181818;
+      border-radius: 10px;
+      background: #FFF7E0;
+      font-size: 0.88rem;
+      font-weight: 600;
+      display: none;
+    }
+
+    .loading-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .spinner-ring {
+      width: 18px;
+      height: 18px;
+      border: 3px solid #E5D7B8;
+      border-top-color: var(--accent-orange);
+      border-radius: 50%;
+      animation: spin360 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin360 {
+      to { transform: rotate(360deg); }
+    }
+
+    .result-box {
+      margin-top: 26px;
+      background: var(--bg-paper);
+      border: var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: none;
+    }
+
+    .result-box.visible { display: block; }
+
+    .variant-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 14px 0 16px;
+    }
+
+    .v-tab {
+      border: 2px solid #181818;
+      background: var(--bg-card);
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.84rem;
+      cursor: pointer;
+    }
+
+    .v-tab.active {
+      background: var(--accent-yellow);
+    }
+
+    .q-card {
+      background: var(--bg-card);
+      border: 2px solid #181818;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 14px;
+    }
+
+    .q-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .q-num-badge {
+      background: var(--accent-yellow);
+      border: 1.5px solid #181818;
+      border-radius: 6px;
+      padding: 2px 9px;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .q-type-pill {
+      background: var(--bg-subtle);
+      border: 1.5px solid #181818;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .edit-field-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--ink-muted);
+      margin-top: 8px;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .edit-textarea {
+      min-height: 68px !important;
+      font-size: 0.88rem !important;
+      background: #FFFDF8 !important;
+    }
+
+    .edit-option-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .edit-option-input {
+      padding: 7px 10px !important;
+      font-size: 0.86rem !important;
+      background: #FFFDF8 !important;
+    }
+
+    .q-images-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .q-img-thumb {
+      border: 2px solid #181818;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--bg-subtle);
+      max-width: 210px;
+    }
+
+    .q-img-thumb img {
+      display: block;
+      max-width: 210px;
+      max-height: 150px;
+      object-fit: contain;
+    }
+
+    .img-edit-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1.5px dashed #D6CBB5;
+    }
+
+    .url-inline-input {
+      flex: 1;
+      min-width: 180px;
+      padding: 7px 10px !important;
+      font-size: 0.82rem !important;
+      background: #FFFDF8 !important;
+    }
+
+    .pagination-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 2px solid #181818;
+    }
+
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(24, 24, 24, 0.58);
+      z-index: 60;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: var(--bg-card);
+      border: var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      max-width: 500px;
+      width: 100%;
+      padding: 26px 24px;
+      text-align: center;
+    }
+
+    .modal-icon {
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 14px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      color: #FFFFFF;
+      border: 2.5px solid #181818;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+
+    @media (max-width: 680px) {
+      .form-grid,
+      .chapter-fields {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <nav class="nav-bar">
+        <a href="/" class="brand-badge">KUISIA EDU HUB</a>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <a href="/" class="btn btn-white">← Kembali ke Beranda</a>
+          <a href="/pricing.html" class="btn btn-white">Harga</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="form-card">
+      <span class="pill-tag">Generator Soal Berbasis Bab &amp; AI</span>
+      <h1>Buat Paket Soal dari Topik &amp; Bab</h1>
+      <p style="color: var(--ink-muted); font-size: 0.92rem; margin-top: 4px;">
+        Isi form dan daftar bab/topik, tekan <strong>Buat Soal</strong> untuk analisa AI, periksa serta edit teks maupun gambar di <strong>Preview</strong>, lalu klik <strong>Publish</strong> untuk menyimpan ke database.
+      </p>
+
+      <form id="briefQuizForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="subjectInput">Mata Pelajaran *</label>
+            <input type="text" id="subjectInput" placeholder="Contoh: Matematika, IPA, Bahasa Indonesia" required />
+          </div>
+
+          <div class="form-group">
+            <label for="gradeSelect">Jenjang *</label>
+            <select id="gradeSelect" required>
+              <option value="SD">SD</option>
+              <option value="SMP" selected>SMP</option>
+              <option value="SMA">SMA</option>
+              <option value="SMK">SMK</option>
+              <option value="Kuliah">Kuliah</option>
+              <option value="Umum">Umum</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="gradeDetailInput">Kelas / Semester (Opsional)</label>
+            <input type="text" id="gradeDetailInput" placeholder="Contoh: Kelas 8 / Semester 1" />
+          </div>
+
+          <div class="form-group">
+            <label for="questionCountInput">Total Jumlah Soal *</label>
+            <input type="number" id="questionCountInput" min="1" max="30" value="10" required />
+          </div>
+
+          <div class="form-group full">
+            <label for="topicInput">Judul Latihan / Topik Utama *</label>
+            <input type="text" id="topicInput" placeholder="Contoh: Persamaan Linear Satu Variabel & Penerapannya" required />
+          </div>
+
+          <div class="form-group full">
+            <div class="chapters-box">
+              <div class="chapters-header">
+                <div>
+                  <label style="font-size: 0.92rem;">Daftar Bab / Subtopik Materi</label>
+                  <div style="font-size: 0.78rem; color: var(--ink-muted);">Gunakan tombol + / - untuk menambah atau mengurangi bab pembahasan.</div>
+                </div>
+                <button type="button" id="addChapterBtn" class="btn btn-yellow">+ Tambah Bab</button>
+              </div>
+              <div id="chaptersList"></div>
+            </div>
+          </div>
+
+          <div class="form-group full">
+            <label>Jenis Soal yang Diinginkan</label>
+            <div class="type-checks">
+              <label class="check-chip"><input type="checkbox" name="qType" value="multiple_choice" checked /> Pilihan Ganda</label>
+              <label class="check-chip"><input type="checkbox" name="qType" value="short_answer" /> Isian Singkat</label>
+              <label class="check-chip"><input type="checkbox" name="qType" value="essay" /> Uraian</label>
+            </div>
+          </div>
+
+          <div class="form-group full">
+            <label for="briefTextarea">Brief / Ringkasan Materi / Catatan Khusus *</label>
+            <textarea id="briefTextarea" placeholder="Tuliskan poin materi, tingkat kesulitan, konteks cerita/soal hitungan, atau instruksi khusus untuk AI..." required></textarea>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="submit" id="generateBtn" class="btn btn-orange">Buat Soal</button>
+          <button type="button" id="resetFormBtn" class="btn btn-white">Reset Form</button>
+        </div>
+      </form>
+
+      <div id="briefStatus" class="status-box"></div>
+
+      <!-- PREVIEW & EDIT SOAL -->
+      <div id="briefResultBox" class="result-box">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+          <div>
+            <span class="pill-tag" style="margin-bottom:6px;">Preview &amp; Edit Soal</span>
+            <h3 id="resTitle">Paket Soal Hasil Analisa AI</h3>
+            <small id="resMeta" style="color: var(--ink-muted);"></small>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button type="button" id="publishBriefQuizBtn" class="btn btn-green">Publish</button>
+          </div>
+        </div>
+
+        <div id="variantTabs" class="variant-tabs"></div>
+        <div id="briefQuestionsList"></div>
+
+        <div id="paginationBar" class="pagination-bar">
+          <span id="questionCountInfo" style="font-size:0.84rem; font-weight:700; color:var(--ink-muted);"></span>
+          <button type="button" id="showMoreQuestionsBtn" class="btn btn-yellow">Tampilkan Lebih Banyak</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL KONFIRMASI SETELAH PUBLISH -->
+  <div id="publishSuccessModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalSuccessTitle">
+    <div class="modal-card">
+      <div class="modal-icon">✓</div>
+      <h2 id="modalSuccessTitle" style="font-size: 1.3rem; margin-bottom: 10px;">Berhasil Dipublikasikan!</h2>
+      <p id="modalSuccessMessage" style="font-size: 0.96rem; color: var(--ink-muted); margin-bottom: 18px;"></p>
+      <div id="modalShareLinks" style="text-align:left; font-size:0.84rem; background:var(--bg-paper); border:2px solid #181818; border-radius:10px; padding:10px 12px; margin-bottom:18px; display:none;"></div>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        <a href="/" class="btn btn-orange">Buka Halaman Dokumen Arsip →</a>
+        <button type="button" id="closeSuccessModalBtn" class="btn btn-white">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const INITIAL_PREVIEW_COUNT = 5;
+    const PREVIEW_STEP = 5;
+
+    let generatedBundle = null;
+    let activeTabKey = "master"; // "master" | "var_0" | "var_1"
+    let visibleCount = INITIAL_PREVIEW_COUNT;
+    let chapterCounter = 0;
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function escapeAttr(str) {
+      return escapeHtml(str).replace(/'/g, "&#39;");
+    }
+
+    function cleanTags(text) {
+      return String(text || "")
+        .replace(/\[[^\]]*\]/g, " ")
+        .replace(/\s+([.,!?;:])/g, "$1")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+    }
+
+    function getQuestionTypeRank(q) {
+      const t = String((q && q.type) || "").toLowerCase().trim();
+      const hasOptions = Array.isArray(q && q.options) && q.options.length > 0;
+      if (t === "multiple_choice" && hasOptions) return 0;
+      if (t === "short_answer" || t === "isian" || t === "fill_in_the_blank" || (t === "multiple_choice" && !hasOptions)) return 1;
+      if (t === "matching") return 2;
+      return 3; // essay / uraian
+    }
+
+    function getQuestionTypeLabel(q) {
+      const rank = getQuestionTypeRank(q);
+      if (rank === 0) return "Pilihan Ganda";
+      if (rank === 1) return "Isian Singkat";
+      if (rank === 2) return "Menjodohkan";
+      return "Uraian";
+    }
+
+    function shuffleGroup(items) {
+      const arr = [...items];
+      for (let i = arr.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      if (arr.length > 1 && arr.every((item, idx) => item === items[idx])) {
+        return [...arr.slice(1), arr[0]];
+      }
+      return arr;
+    }
+
+    function orderQuestionsByType(questions, shuffleAlternatives = false) {
+      const list = Array.isArray(questions) ? [...questions] : [];
+      if (!shuffleAlternatives) {
+        return list
+          .map((q, originalIdx) => ({ q, originalIdx, rank: getQuestionTypeRank(q) }))
+          .sort((a, b) => (a.rank !== b.rank ? a.rank - b.rank : a.originalIdx - b.originalIdx))
+          .map((entry) => entry.q);
+      }
+
+      const buckets = { 0: [], 1: [], 2: [], 3: [] };
+      list.forEach((q) => {
+        const rank = getQuestionTypeRank(q);
+        buckets[rank].push(q);
+      });
+
+      return [0, 1, 2, 3].flatMap((rank) => shuffleGroup(buckets[rank]));
+    }
+
+    function createChapterRow(initial = {}) {
+      chapterCounter += 1;
+      const row = document.createElement("div");
+      row.className = "chapter-item";
+
+      row.innerHTML = `
+        <div class="chapter-top">
+          <span class="chapter-badge">Bab ${chapterCounter}</span>
+          <button type="button" class="btn btn-danger remove-chapter-btn" style="padding:4px 10px; font-size:0.76rem;">- Hapus Bab</button>
+        </div>
+        <div class="chapter-fields">
+          <div class="form-group" style="margin:0;">
+            <label>Judul Bab / Topik *</label>
+            <input type="text" class="chapter-title" required placeholder="Contoh: Bab 1 - Konsep Dasar & Persamaan" value="${escapeAttr(initial.title || "")}" />
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label>Jumlah Soal</label>
+            <input type="number" class="chapter-count" min="1" max="30" placeholder="Otomatis" value="${initial.count ? Number(initial.count) : ""}" />
+          </div>
+          <div class="form-group full" style="margin-top:6px;">
+            <label>Detail Materi / Subtopik *</label>
+            <textarea class="chapter-detail" required style="min-height:68px;" placeholder="Tuliskan subbab, konsep penting, atau fokus soal untuk bab ini...">${escapeHtml(initial.detail || "")}</textarea>
+          </div>
+        </div>
+      `;
+
+      row.querySelector(".remove-chapter-btn").addEventListener("click", () => {
+        const items = document.querySelectorAll("#chaptersList .chapter-item");
+        if (items.length <= 1) {
+          alert("Minimal harus ada 1 bab.");
+          return;
+        }
+        row.remove();
+        renumberChapters();
+      });
+
+      document.getElementById("chaptersList").appendChild(row);
+      renumberChapters();
+    }
+
+    function renumberChapters() {
+      document.querySelectorAll("#chaptersList .chapter-item").forEach((item, i) => {
+        const badge = item.querySelector(".chapter-badge");
+        if (badge) badge.textContent = `Bab ${i + 1}`;
+      });
+    }
+
+    function collectChapters() {
+      const items = Array.from(document.querySelectorAll("#chaptersList .chapter-item"));
+      const totalQ = Math.max(1, Number(document.getElementById("questionCountInput").value) || 10);
+      const baseShare = Math.floor(totalQ / Math.max(1, items.length));
+      let remainder = totalQ - baseShare * items.length;
+
+      return items.map((el, idx) => {
+        const title = el.querySelector(".chapter-title").value.trim();
+        const detail = el.querySelector(".chapter-detail").value.trim();
+        const rawCount = Number(el.querySelector(".chapter-count").value);
+        const count = rawCount > 0 ? rawCount : baseShare + (remainder > 0 ? 1 : 0);
+        if (!rawCount && remainder > 0) remainder -= 1;
+        return {
+          chapter_number: idx + 1,
+          title,
+          detail,
+          question_count: count
+        };
+      });
+    }
+
+    function normalizeBundle(rawData, payload) {
+      const data = rawData && typeof rawData === "object" ? rawData : {};
+      const mapQuestions = (qs, prefix, shuffleAlternatives = false) => {
+        const cleaned = (Array.isArray(qs) ? qs : []).map((q, idx) => {
+          const imgs = Array.isArray(q.image_urls) && q.image_urls.length
+            ? [...q.image_urls]
+            : (q.image_url ? [q.image_url] : []);
+          return {
+            ...q,
+            id: q.id || `${prefix}-q-${idx + 1}`,
+            passage: cleanTags(q.passage || ""),
+            question: cleanTags(q.question || ""),
+            options: Array.isArray(q.options) ? q.options.map((o) => cleanTags(o)) : [],
+            answer: cleanTags(q.answer || ""),
+            rubric: cleanTags(q.rubric || ""),
+            image_urls: imgs
+          };
+        });
+        return orderQuestionsByType(cleaned, shuffleAlternatives);
+      };
+
+      const master = data.master_quiz || {
+        title: payload.topic,
+        questions: Array.isArray(data.questions) ? data.questions : []
+      };
+      master.title = master.title || `${payload.topic} (Soal Utama)`;
+      master.questions = mapQuestions(master.questions, "master", false);
+
+      let alternatives = Array.isArray(data.alternatives) ? [...data.alternatives] : [];
+      if (alternatives.length < 2) {
+        for (let v = alternatives.length; v < 2; v += 1) {
+          alternatives.push({
+            title: `Variasi ${v + 1}`,
+            questions: orderQuestionsByType(
+              master.questions.map((q, idx) => ({
+                ...q,
+                id: `var${v + 1}-q-${idx + 1}`,
+                options: [...(q.options || [])],
+                image_urls: [...(q.image_urls || [])]
+              })),
+              true
+            )
+          });
+        }
+      } else {
+        alternatives = alternatives.slice(0, 2).map((alt, v) => ({
+          ...alt,
+          title: alt.title || `Variasi ${v + 1}`,
+          questions: mapQuestions(alt.questions, `var${v + 1}`, true)
+        }));
+      }
+
+      const meta = data.metadata || {};
+      const slug = meta.slug || (payload.topic || "latihan-soal")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "latihan-soal";
+
+      return {
+        metadata: {
+          subject: meta.subject || payload.subject,
+          grade: meta.grade || payload.grade,
+          grade_detail: meta.grade_detail || payload.grade_detail,
+          topic: meta.topic || payload.topic,
+          chapters: payload.chapters,
+          slug
+        },
+        master_quiz: master,
+        alternatives
+      };
+    }
+
+    function getActivePackage() {
+      if (!generatedBundle) return null;
+      if (activeTabKey === "master") return generatedBundle.master_quiz;
+      if (activeTabKey === "var_0") return generatedBundle.alternatives[0];
+      if (activeTabKey === "var_1") return generatedBundle.alternatives[1];
+      return generatedBundle.master_quiz;
+    }
+
+    function renderVariantTabs() {
+      const tabsEl = document.getElementById("variantTabs");
+      tabsEl.innerHTML = "";
+      const defs = [
+        { key: "master", label: "Soal Utama" },
+        { key: "var_0", label: "Variasi 1" },
+        { key: "var_1", label: "Variasi 2" }
+      ];
+      defs.forEach((d) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "v-tab" + (activeTabKey === d.key ? " active" : "");
+        btn.textContent = d.label;
+        btn.addEventListener("click", () => {
+          activeTabKey = d.key;
+          visibleCount = INITIAL_PREVIEW_COUNT;
+          renderVariantTabs();
+          renderEditableQuestions();
+        });
+        tabsEl.appendChild(btn);
+      });
+    }
+
+    function renderEditableQuestions() {
+      const list = document.getElementById("briefQuestionsList");
+      const countInfo = document.getElementById("questionCountInfo");
+      const showMoreBtn = document.getElementById("showMoreQuestionsBtn");
+      list.innerHTML = "";
+
+      const pkg = getActivePackage();
+      const allQuestions = (pkg && Array.isArray(pkg.questions)) ? pkg.questions : [];
+      const total = allQuestions.length;
+      const shownQuestions = allQuestions.slice(0, visibleCount);
+
+      if (countInfo) {
+        countInfo.textContent = `Menampilkan ${shownQuestions.length} dari ${total} soal`;
+      }
+      if (showMoreBtn) {
+        showMoreBtn.style.display = shownQuestions.length < total ? "inline-flex" : "none";
+      }
+
+      shownQuestions.forEach((q, idx) => {
+        const card = document.createElement("div");
+        card.className = "q-card";
+
+        const header = document.createElement("div");
+        header.className = "q-card-header";
+        header.innerHTML = `
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="q-num-badge">Soal #${idx + 1}</span>
+            <span class="q-type-pill">${escapeHtml(getQuestionTypeLabel(q))}</span>
+          </div>
+          <small style="color:var(--ink-muted);">Klik teks untuk mengedit langsung</small>
+        `;
+        card.appendChild(header);
+
+        if (q.passage) {
+          const pLabel = document.createElement("label");
+          pLabel.className = "edit-field-label";
+          pLabel.textContent = "Teks Bacaan:";
+          card.appendChild(pLabel);
+
+          const pInput = document.createElement("textarea");
+          pInput.className = "edit-textarea";
+          pInput.value = q.passage;
+          pInput.addEventListener("input", () => { q.passage = pInput.value; });
+          card.appendChild(pInput);
+        }
+
+        const qLabel = document.createElement("label");
+        qLabel.className = "edit-field-label";
+        qLabel.textContent = "Teks Pertanyaan:";
+        card.appendChild(qLabel);
+
+        const qInput = document.createElement("textarea");
+        qInput.className = "edit-textarea";
+        qInput.value = q.question || "";
+        qInput.addEventListener("input", () => { q.question = qInput.value; });
+        card.appendChild(qInput);
+
+        if (Array.isArray(q.options) && q.options.length) {
+          const optLabel = document.createElement("label");
+          optLabel.className = "edit-field-label";
+          optLabel.textContent = "Pilihan Jawaban:";
+          card.appendChild(optLabel);
+
+          q.options.forEach((opt, optIdx) => {
+            const optRow = document.createElement("div");
+            optRow.className = "edit-option-row";
+
+            const optInput = document.createElement("input");
+            optInput.type = "text";
+            optInput.className = "edit-option-input";
+            optInput.value = opt;
+            optInput.addEventListener("input", () => { q.options[optIdx] = optInput.value; });
+
+            optRow.appendChild(optInput);
+            card.appendChild(optRow);
+          });
+        }
+
+        const ansLabel = document.createElement("label");
+        ansLabel.className = "edit-field-label";
+        ansLabel.textContent = "Kunci Jawaban / Rubrik:";
+        card.appendChild(ansLabel);
+
+        const ansInput = document.createElement("input");
+        ansInput.type = "text";
+        ansInput.className = "edit-option-input";
+        ansInput.value = q.answer || q.rubric || "";
+        ansInput.addEventListener("input", () => {
+          if (q.answer !== undefined) q.answer = ansInput.value;
+          else q.rubric = ansInput.value;
+        });
+        card.appendChild(ansInput);
+
+        const imgs = Array.isArray(q.image_urls) ? q.image_urls : [];
+        if (imgs.length) {
+          const imgsWrap = document.createElement("div");
+          imgsWrap.className = "q-images-grid";
+          imgs.forEach((src, imgIdx) => {
+            const thumb = document.createElement("div");
+            thumb.className = "q-img-thumb";
+
+            const img = document.createElement("img");
+            img.src = src;
+            img.alt = `Gambar soal ${idx + 1}`;
+            thumb.appendChild(img);
+
+            const delBtn = document.createElement("button");
+            delBtn.type = "button";
+            delBtn.className = "btn btn-danger";
+            delBtn.style.cssText = "width:100%; border-radius:0; border:none; border-top:2px solid #181818; box-shadow:none; padding:4px 8px; font-size:0.75rem;";
+            delBtn.textContent = "Hapus Gambar";
+            delBtn.addEventListener("click", () => {
+              q.image_urls.splice(imgIdx, 1);
+              renderEditableQuestions();
+            });
+            thumb.appendChild(delBtn);
+            imgsWrap.appendChild(thumb);
+          });
+          card.appendChild(imgsWrap);
+        }
+
+        const editBar = document.createElement("div");
+        editBar.className = "img-edit-bar";
+
+        const fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.accept = "image/*";
+        fileInput.hidden = true;
+
+        const uploadBtn = document.createElement("button");
+        uploadBtn.type = "button";
+        uploadBtn.className = "btn btn-yellow";
+        uploadBtn.style.cssText = "padding:6px 11px; font-size:0.78rem;";
+        uploadBtn.textContent = "+ Upload Gambar";
+        uploadBtn.addEventListener("click", () => fileInput.click());
+
+        fileInput.addEventListener("change", () => {
+          const file = fileInput.files && fileInput.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (typeof reader.result === "string") {
+              q.image_urls.push(reader.result);
+              renderEditableQuestions();
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+
+        const urlInput = document.createElement("input");
+        urlInput.type = "url";
+        urlInput.className = "url-inline-input";
+        urlInput.placeholder = "Atau tempel URL gambar (https://...)";
+
+        const addUrlBtn = document.createElement("button");
+        addUrlBtn.type = "button";
+        addUrlBtn.className = "btn btn-white";
+        addUrlBtn.style.cssText = "padding:6px 11px; font-size:0.78rem;";
+        addUrlBtn.textContent = "Tambah URL";
+        addUrlBtn.addEventListener("click", () => {
+          const val = urlInput.value.trim();
+          if (!val) return;
+          q.image_urls.push(val);
+          urlInput.value = "";
+          renderEditableQuestions();
+        });
+
+        editBar.appendChild(fileInput);
+        editBar.appendChild(uploadBtn);
+        editBar.appendChild(urlInput);
+        editBar.appendChild(addUrlBtn);
+        card.appendChild(editBar);
+
+        list.appendChild(card);
+      });
+    }
+
+    function renderGeneratedQuestions(bundle) {
+      generatedBundle = bundle;
+      activeTabKey = "master";
+      visibleCount = INITIAL_PREVIEW_COUNT;
+
+      const box = document.getElementById("briefResultBox");
+      const meta = bundle.metadata || {};
+      const questions = Array.isArray(bundle.master_quiz?.questions) ? bundle.master_quiz.questions : [];
+
+      document.getElementById("resTitle").textContent = meta.topic || "Latihan Soal";
+      document.getElementById("resMeta").textContent = `${meta.subject || "Umum"} • ${meta.grade || "Umum"} • ${questions.length} soal • Soal Utama + Variasi 1 & 2`;
+
+      renderVariantTabs();
+      renderEditableQuestions();
+
+      box.classList.add("visible");
+      box.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function resetEditorToInitial() {
+      document.getElementById("briefQuizForm").reset();
+      document.getElementById("chaptersList").innerHTML = "";
+      chapterCounter = 0;
+      createChapterRow({ title: "Bab 1", detail: "" });
+
+      generatedBundle = null;
+      activeTabKey = "master";
+      visibleCount = INITIAL_PREVIEW_COUNT;
+
+      document.getElementById("briefQuestionsList").innerHTML = "";
+      document.getElementById("variantTabs").innerHTML = "";
+      document.getElementById("briefResultBox").classList.remove("visible");
+      document.getElementById("briefStatus").style.display = "none";
+      document.getElementById("briefStatus").innerHTML = "";
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      createChapterRow({ title: "Bab 1", detail: "" });
+
+      document.getElementById("addChapterBtn").addEventListener("click", () => {
+        createChapterRow();
+      });
+
+      document.getElementById("resetFormBtn").addEventListener("click", () => {
+        resetEditorToInitial();
+      });
+
+      document.getElementById("showMoreQuestionsBtn").addEventListener("click", () => {
+        visibleCount += PREVIEW_STEP;
+        renderEditableQuestions();
+      });
+
+      document.getElementById("briefQuizForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const statusBox = document.getElementById("briefStatus");
+        const generateBtn = document.getElementById("generateBtn");
+
+        const chapters = collectChapters();
+        const chaptersText = chapters
+          .map((c) => `Bab ${c.chapter_number} (${c.title}, ~${c.question_count} soal): ${c.detail}`)
+          .join("\n");
+
+        const checkedTypes = Array.from(document.querySelectorAll('input[name="qType"]:checked')).map((el) => el.value);
+        const baseBrief = document.getElementById("briefTextarea").value.trim();
+
+        const payload = {
+          subject: document.getElementById("subjectInput").value.trim(),
+          grade: document.getElementById("gradeSelect").value,
+          grade_detail: document.getElementById("gradeDetailInput").value.trim(),
+          topic: document.getElementById("topicInput").value.trim(),
+          question_count: Number(document.getElementById("questionCountInput").value) || 10,
+          question_types: checkedTypes.length ? checkedTypes : ["multiple_choice"],
+          chapters,
+          brief: `${baseBrief}\n\nRincian Bab/Topik:\n${chaptersText}`.trim(),
+        };
+
+        statusBox.style.display = "block";
+        statusBox.innerHTML = `<span class="loading-row"><span class="spinner-ring"></span><span>AI sedang menganalisis bab &amp; menyusun paket soal beserta variasinya...</span></span>`;
+        generateBtn.disabled = true;
+
+        try {
+          const res = await fetch("/api/generate-quiz-brief", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.detail || "Gagal membuat soal.");
+          statusBox.style.display = "none";
+          const normalized = normalizeBundle(json.data || json, payload);
+          renderGeneratedQuestions(normalized);
+        } catch (err) {
+          statusBox.textContent = err.message;
+        } finally {
+          generateBtn.disabled = false;
+        }
+      });
+
+      document.getElementById("publishBriefQuizBtn").addEventListener("click", async () => {
+        if (!generatedBundle) return;
+        const publishBtn = document.getElementById("publishBriefQuizBtn");
+        const statusBox = document.getElementById("briefStatus");
+        publishBtn.disabled = true;
+        publishBtn.textContent = "Memproses...";
+
+        statusBox.style.display = "block";
+        statusBox.innerHTML = `<span class="loading-row"><span class="spinner-ring"></span><span>AI sedang memfinalisasi &amp; menyimpan soal beserta variasinya ke database...</span></span>`;
+
+        const meta = generatedBundle.metadata || {};
+        const topicName = meta.topic || "Latihan Soal";
+        const rand = Math.random().toString(36).slice(2, 7);
+
+        const packagesToPublish = [
+          { label: "Soal Utama", pkg: generatedBundle.master_quiz, slug: `${meta.slug}-utama-${rand}` },
+          { label: "Variasi 1", pkg: generatedBundle.alternatives[0], slug: `${meta.slug}-var1-${rand}` },
+          { label: "Variasi 2", pkg: generatedBundle.alternatives[1], slug: `${meta.slug}-var2-${rand}` }
+        ];
+
+        const publishedLinks = [];
+
+        try {
+          for (const item of packagesToPublish) {
+            if (!item.pkg) continue;
+            const res = await fetch("/api/publish-quiz", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                title: item.pkg.title || `${topicName} (${item.label})`,
+                subject: meta.subject || "Umum",
+                grade: meta.grade || "Umum",
+                topic: topicName,
+                slug: item.slug,
+                quiz_data: item.pkg,
+              }),
+            });
+            const json = await res.json();
+            if (!res.ok) {
+              throw new Error(json.detail || `Gagal menyimpan ${item.label} ke database.`);
+            }
+            if (json.share_url) {
+              publishedLinks.push({ label: item.label, url: json.share_url });
+            }
+          }
+
+          await fetch("/api/archives", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              topic: topicName,
+              subject: meta.subject || "Umum",
+              grade: meta.grade || "Umum",
+              grade_detail: meta.grade_detail || "",
+              filename: `${meta.slug || "latihan-soal"}.docx`,
+              total_questions: Array.isArray(generatedBundle.master_quiz?.questions)
+                ? generatedBundle.master_quiz.questions.length
+                : 0,
+              data: generatedBundle,
+            }),
+          });
+
+          // Kosongkan form & panel preview setelah publish selesai
+          resetEditorToInitial();
+
+          // Tampilkan modal konfirmasi
+          document.getElementById("modalSuccessMessage").textContent =
+            `Soal Latihan "${topicName}" berhasil dibuat, silahkan buka di halaman dokumen arsip.`;
+
+          const linksBox = document.getElementById("modalShareLinks");
+          if (publishedLinks.length) {
+            linksBox.style.display = "block";
+            linksBox.innerHTML = publishedLinks
+              .map((l) => `<div style="margin-bottom:4px;"><strong>${escapeHtml(l.label)}:</strong> <a href="${escapeAttr(l.url)}" target="_blank" rel="noopener">${escapeHtml(l.url)}</a></div>`)
+              .join("");
+          } else {
+            linksBox.style.display = "none";
+          }
+
+          document.getElementById("publishSuccessModal").classList.add("open");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } catch (err) {
+          statusBox.style.display = "block";
+          statusBox.textContent = err.message;
+        } finally {
+          publishBtn.disabled = false;
+          publishBtn.textContent = "Publish";
+        }
+      });
+
+      document.getElementById("closeSuccessModalBtn").addEventListener("click", () => {
+        document.getElementById("publishSuccessModal").classList.remove("open");
+      });
+    });
+  </script>
+</body>
+</html>

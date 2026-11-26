@@ -43,6 +43,77 @@
       color: var(--ink);
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* AKSEN ANIMASI WARNA LATAR BELAKANG HALUS */
+    .ambient-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 14% 18%, rgba(246, 174, 45, 0.24), transparent 46%),
+        radial-gradient(circle at 86% 22%, rgba(242, 100, 25, 0.14), transparent 44%),
+        radial-gradient(circle at 52% 88%, rgba(46, 158, 91, 0.13), transparent 48%);
+      animation: ambientColorShift 18s ease-in-out infinite alternate;
+    }
+
+    @keyframes ambientColorShift {
+      0% {
+        filter: hue-rotate(0deg) saturate(100%);
+        transform: scale(1);
+      }
+      50% {
+        filter: hue-rotate(14deg) saturate(112%);
+        transform: scale(1.03);
+      }
+      100% {
+        filter: hue-rotate(-10deg) saturate(105%);
+        transform: scale(1);
+      }
+    }
+
+    /* ANIMASI POP UP & SLIDE IN SAAT SCROLL */
+    .reveal-ready .reveal-item {
+      opacity: 0;
+      transition:
+        opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+      transition-delay: var(--reveal-delay, 0ms);
+      will-change: opacity, transform;
+    }
+
+    .reveal-ready .reveal-popup {
+      transform: translateY(24px) scale(0.97);
+    }
+
+    .reveal-ready .reveal-slide-left {
+      transform: translateX(-28px);
+    }
+
+    .reveal-ready .reveal-slide-right {
+      transform: translateX(28px);
+    }
+
+    .reveal-ready .reveal-item.is-visible {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ambient-bg {
+        animation: none;
+      }
+      .reveal-ready .reveal-item,
+      .reveal-ready .reveal-popup,
+      .reveal-ready .reveal-slide-left,
+      .reveal-ready .reveal-slide-right {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+      }
     }
 
     h1, h2, h3, .brand-font {
@@ -156,6 +227,7 @@
     .btn-orange {
       background: var(--accent-orange);
       color: #FFFFFF;
+      padding: 13px 16px;
     }
 
     .btn-yellow {
@@ -213,7 +285,7 @@
       width: 215px;
       height: 215px;
       background: var(--accent-yellow);
-      border: var(--border);
+      border: none;
       border-radius: 50%;
       position: relative;
       display: flex;
@@ -402,6 +474,17 @@
       transform: translateY(-1px);
     }
 
+    .dropzone.has-file {
+      border-style: solid;
+      background: #FFF9E6;
+    }
+
+    .dropzone.is-loading {
+      border-style: solid;
+      background: #FFF3D1;
+      pointer-events: none;
+    }
+
     .drop-icon {
       width: 44px;
       height: 44px;
@@ -421,6 +504,7 @@
       font-weight: 700;
       font-size: 0.95rem;
       margin-bottom: 4px;
+      word-break: break-word;
     }
 
     .dropzone-sub {
@@ -428,15 +512,62 @@
       color: var(--ink-muted);
     }
 
+    .file-pill {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-yellow);
+      border: 1.5px solid #181818;
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+
     .status-box {
       margin-top: 14px;
       font-size: 0.86rem;
       font-weight: 600;
       display: none;
-      padding: 10px 14px;
+      padding: 12px 14px;
       border-radius: 10px;
       border: 2px solid #181818;
       background: #FFF7E0;
+    }
+
+    .loading-row {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .spinner-ring {
+      width: 20px;
+      height: 20px;
+      border: 3px solid #E5D7B8;
+      border-top-color: var(--accent-orange);
+      border-radius: 50%;
+      animation: spin360 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin360 {
+      to { transform: rotate(360deg); }
+    }
+
+    .no-docx-bar {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1.5px dashed #D6CBB5;
+      font-size: 0.88rem;
+      color: var(--ink-muted);
+    }
+
+    .no-docx-link {
+      color: var(--accent-orange);
+      font-weight: 800;
+      text-decoration: underline;
+      margin-left: 6px;
     }
 
     /* ABOUT BANNER (ORANGE) */
@@ -768,11 +899,35 @@
       border: var(--border);
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-lg);
-      max-width: 680px;
+      max-width: 720px;
       width: 100%;
-      max-height: 82vh;
+      max-height: 84vh;
       overflow-y: auto;
       padding: 22px;
+    }
+
+    .grade-filter-bar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1.5px dashed #D6CBB5;
+    }
+
+    .grade-tab {
+      border: 2px solid #181818;
+      background: var(--bg-paper);
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .grade-tab.active {
+      background: var(--accent-yellow);
     }
 
     .archive-row {
@@ -786,6 +941,17 @@
       background: var(--bg-paper);
       margin-bottom: 10px;
       flex-wrap: wrap;
+    }
+
+    .grade-badge {
+      display: inline-block;
+      background: var(--accent-yellow);
+      border: 1.5px solid #181818;
+      border-radius: 6px;
+      padding: 1px 7px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      margin-right: 6px;
     }
 
     footer {
@@ -818,6 +984,68 @@
         flex-direction: column;
         text-align: center;
       }
+
+      .nav-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        row-gap: 10px;
+      }
+
+      .nav-actions {
+        display: contents;
+      }
+
+      .lang-toggle {
+        order: 2;
+      }
+
+      .nav-actions > .btn {
+        order: 3;
+      }
+    }
+
+    .archive-search-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .archive-search-input {
+      width: 100%;
+      padding: 9px 36px 9px 12px;
+      border: 2px solid #181818;
+      border-radius: 8px;
+      background: var(--bg-paper);
+      color: var(--ink);
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      outline: none;
+    }
+
+    .archive-search-input:focus {
+      background: #FFFDF8;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .archive-search-clear {
+      position: absolute;
+      right: 8px;
+      border: none;
+      background: transparent;
+      color: var(--ink-muted);
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      padding: 2px 6px;
+      display: none;
+    }
+
+    .archive-search-clear.visible {
+      display: inline-block;
     }
 
     @media (max-width: 480px) {
@@ -828,21 +1056,23 @@
   </style>
 </head>
 <body>
+  <div class="ambient-bg" aria-hidden="true"></div>
+
   <!-- NAVBAR -->
   <header>
     <div class="container">
       <nav class="nav-bar">
         <a href="#" class="brand">
-          <span class="brand-badge">EDU HUB</span>
-          <span>KUISIA CREATOR</span>
+          <span class="brand-badge">KUISIA EDU HUB</span>
         </a>
         <div class="nav-actions">
           <div class="lang-toggle" role="group" aria-label="Language switcher">
             <button type="button" data-lang="id">ID</button>
             <button type="button" data-lang="en">EN</button>
           </div>
+          <a href="/pricing.html" class="btn btn-white" data-i18n="navPricing">Harga</a>
+          <a href="/contact.html" class="btn btn-white" data-i18n="navContact">Hubungi Kami</a>
           <button type="button" id="openArchiveBtn" class="btn btn-orange" data-i18n="navArchive">Arsip Dokumen</button>
-          <a href="#uploadSection" class="btn btn-white" data-i18n="navStart">Mulai Buat</a>
         </div>
       </nav>
     </div>
@@ -911,12 +1141,18 @@
 
           <input type="file" id="docxInput" accept=".docx" hidden />
           <div id="dropzone" class="dropzone" tabindex="0" role="button">
-            <div class="drop-icon">↑</div>
-            <div class="dropzone-title" data-i18n="dropTitle">Klik atau seret file Word (.docx) ke sini</div>
-            <div class="dropzone-sub" data-i18n="dropSub">Maksimal 1 dokumen .docx per proses</div>
+            <div id="dropIcon" class="drop-icon">↑</div>
+            <div id="dropTitle" class="dropzone-title" data-i18n="dropTitle">Klik atau seret file Word (.docx) ke sini</div>
+            <div id="dropSub" class="dropzone-sub" data-i18n="dropSub">Maksimal 1 dokumen .docx per proses</div>
+            <div id="selectedFileBadge" style="display:none;"></div>
           </div>
 
           <div id="uploadStatus" class="status-box"></div>
+
+          <div class="no-docx-bar">
+            <span data-i18n="noDocxPrompt">Belum punya file .docx?</span>
+            <a href="/create-quiz" class="no-docx-link" data-i18n="noDocxLink">Buat Soal dengan AI →</a>
+          </div>
         </div>
 
         <!-- WORKSPACE HASIL EKSTRAKSI -->
@@ -949,7 +1185,7 @@
     <!-- ABOUT BANNER -->
     <section class="about-section">
       <div class="container">
-        <div class="about-banner">
+        <div class="about-banner reveal-item reveal-popup">
           <h2 data-i18n="aboutTitle">Apa itu Kuisia Edu Hub?</h2>
           <p data-i18n="aboutP1">Kuisia Edu Hub adalah asisten penyusun soal berbasis AI yang membantu guru, dosen, dan lembaga pendidikan mengubah naskah ujian Microsoft Word (.docx) menjadi kuis online interaktif secara instan.</p>
           <p data-i18n="aboutP2">Tidak perlu menyalin soal satu per satu. Sistem mengekstrak struktur bacaan, tabel, dan gambar secara utuh, membuat variasi soal otomatis, sekaligus menyiapkan tautan latihan yang siap dikerjakan siswa di perangkat apa pun.</p>
@@ -960,43 +1196,45 @@
     <!-- HOW IT WORKS -->
     <section class="how-section">
       <div class="container">
-        <h2 class="section-title-accent" data-i18n="howTitle">Bagaimana Cara Kerjanya?</h2>
-        <p class="section-subtitle" data-i18n="howSub">Dari dokumen Word menjadi kuis online dalam empat langkah mudah</p>
+        <div class="reveal-item reveal-popup">
+          <h2 class="section-title-accent" data-i18n="howTitle">Bagaimana Cara Kerjanya?</h2>
+          <p class="section-subtitle" data-i18n="howSub">Dari dokumen Word menjadi kuis online dalam empat langkah mudah</p>
+        </div>
 
         <div class="steps-grid">
-          <div class="step-card">
+          <div class="step-card reveal-item reveal-slide-left" style="--reveal-delay: 0ms;">
             <div class="step-num">1</div>
             <h3 data-i18n="step1Title">Unggah .docx Anda</h3>
             <p data-i18n="step1Desc">Pilih file soal berformat .docx berisi pilihan ganda, isian, maupun uraian.</p>
           </div>
-          <div class="step-card">
+          <div class="step-card reveal-item reveal-popup" style="--reveal-delay: 90ms;">
             <div class="step-num">2</div>
             <h3 data-i18n="step2Title">AI Menganalisis</h3>
             <p data-i18n="step2Desc">AI mengenali tipe soal, bacaan cerita, gambar, serta menyusun variasi soal baru.</p>
           </div>
-          <div class="step-card">
+          <div class="step-card reveal-item reveal-popup" style="--reveal-delay: 180ms;">
             <div class="step-num">3</div>
             <h3 data-i18n="step3Title">Paket Soal Siap!</h3>
             <p data-i18n="step3Desc">Tinjau paket utama maupun paket variasi, atau unduh kembali dalam format .docx rapi.</p>
           </div>
-          <div class="step-card">
+          <div class="step-card reveal-item reveal-slide-right" style="--reveal-delay: 270ms;">
             <div class="step-num">4</div>
             <h3 data-i18n="step4Title">Bagikan &amp; Kerjakan</h3>
             <p data-i18n="step4Desc">Terbitkan tautan kuis interaktif agar siswa dapat langsung berlatih dan melihat skor.</p>
           </div>
         </div>
 
-        <p class="how-summary" data-i18n="howSummary">Setiap dokumen yang diproses tersimpan otomatis di Arsip Dokumen sehingga Anda dapat membuka ulang bank soal, mengunduh lembar ujian siap cetak, atau membagikan tautan latihan kapan saja.</p>
+        <p class="how-summary reveal-item reveal-popup" style="--reveal-delay: 120ms;" data-i18n="howSummary">Setiap dokumen yang diproses tersimpan otomatis di Arsip Dokumen sehingga Anda dapat membuka ulang bank soal, mengunduh lembar ujian siap cetak, atau membagikan tautan latihan kapan saja.</p>
       </div>
     </section>
 
     <!-- FAQ -->
     <section class="faq-section">
       <div class="container">
-        <h2 class="section-title-accent" data-i18n="faqTitle">Word to Quiz — Pertanyaan Umum</h2>
+        <h2 class="section-title-accent reveal-item reveal-popup" data-i18n="faqTitle">Word to Quiz — Pertanyaan Umum</h2>
 
         <div class="faq-list">
-          <div class="faq-item">
+          <div class="faq-item reveal-item reveal-slide-left" style="--reveal-delay: 0ms;">
             <button type="button" class="faq-question">
               <span data-i18n="faq1Q">Bisakah dokumen Word langsung diubah menjadi kuis interaktif?</span>
               <span class="faq-icon">+</span>
@@ -1004,7 +1242,7 @@
             <div class="faq-answer" data-i18n="faq1A">Ya. Cukup unggah file .docx Anda, dan sistem akan memisahkan setiap nomor soal, opsi jawaban, bacaan, tabel, serta gambar menjadi halaman kuis interaktif yang siap dibagikan melalui tautan.</div>
           </div>
 
-          <div class="faq-item">
+          <div class="faq-item reveal-item reveal-slide-right" style="--reveal-delay: 90ms;">
             <button type="button" class="faq-question">
               <span data-i18n="faq2Q">Format dokumen dan jenis soal apa saja yang didukung?</span>
               <span class="faq-icon">+</span>
@@ -1012,7 +1250,7 @@
             <div class="faq-answer" data-i18n="faq2A">Saat ini mendukung dokumen Microsoft Word (.docx) dengan jenis soal Pilihan Ganda, Isian Singkat, Menjodohkan, dan Uraian, termasuk soal berbasis teks bacaan panjang maupun gambar.</div>
           </div>
 
-          <div class="faq-item">
+          <div class="faq-item reveal-item reveal-slide-left" style="--reveal-delay: 180ms;">
             <button type="button" class="faq-question">
               <span data-i18n="faq3Q">Apakah Kuisia Edu Hub gratis digunakan?</span>
               <span class="faq-icon">+</span>
@@ -1026,9 +1264,9 @@
     <!-- FOUNDER -->
     <section class="founder-section">
       <div class="container">
-        <h2 class="founder-heading" data-i18n="founderTitle">Kenalan dengan <span>Pembuatnya!</span></h2>
+        <h2 class="founder-heading reveal-item reveal-popup" data-i18n="founderTitle">Kenalan dengan <span>Pembuatnya!</span></h2>
 
-        <div class="founder-box">
+        <div class="founder-box reveal-item reveal-popup" style="--reveal-delay: 100ms;">
           <div class="founder-avatar">
             <img src="/founder-photo.png" alt="Firman A. Prasetyo" />
           </div>
@@ -1051,15 +1289,28 @@
   <!-- ARCHIVE MODAL -->
   <div id="archiveModal" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <h3 data-i18n="archiveModalTitle">Arsip Dokumen Soal</h3>
         <button type="button" id="closeArchiveBtn" class="btn btn-white">✕</button>
+      </div>
+      <div id="gradeFilterBar" class="grade-filter-bar"></div>
+      <div class="archive-search-wrap">
+        <input
+          type="text"
+          id="archiveSearchInput"
+          class="archive-search-input"
+          placeholder="Cari judul/topik, mata pelajaran, nama file, atau jenjang..."
+          aria-label="Cari arsip dokumen"
+        />
+        <button type="button" id="clearArchiveSearchBtn" class="archive-search-clear" title="Hapus pencarian">✕</button>
       </div>
       <div id="archiveListContainer"></div>
     </div>
   </div>
 
   <script>
+    const GRADES = ["Semua", "SD", "SMP", "SMA", "SMK", "Kuliah", "Umum"];
+
     const I18N = {
       id: {
         navArchive: "Arsip Dokumen",
@@ -1074,6 +1325,8 @@
         tierPro: "Mode Lengkap (Gambar + 2 Variasi)",
         dropTitle: "Klik atau seret file Word (.docx) ke sini",
         dropSub: "Maksimal 1 dokumen .docx per proses",
+        noDocxPrompt: "Belum punya file .docx?",
+        noDocxLink: "Buat Soal dengan AI →",
         btnExportDocx: "Unduh .docx",
         btnPublish: "Bagikan Link Kuis",
         btnShowMore: "Lihat Lebih Banyak",
@@ -1105,11 +1358,13 @@
         founderRole: "Firman A. Prasetyo — Founder & Builder",
         founderCta: "Hubungi Saya",
         archiveModalTitle: "Arsip Dokumen Soal",
-        msgProcessing: "Sedang memproses dokumen dengan AI, mohon tunggu...",
+        msgProcessing: "Sedang menganalisis dokumen dengan AI, mohon tunggu...",
         msgErrorDocx: "Harap pilih file berformat .docx.",
         msgArchiveLoading: "Memuat daftar arsip...",
-        msgArchiveEmpty: "Belum ada arsip dokumen tersimpan.",
-        btnOpenArchive: "Buka"
+        msgArchiveEmpty: "Belum ada arsip dokumen pada tingkatan ini.",
+        btnOpenArchive: "Buka",
+        navPricing: "Harga",
+        navContact: "Hubungi Kami",
       },
       en: {
         navArchive: "Document Archives",
@@ -1124,6 +1379,8 @@
         tierPro: "Full Mode (Images + 2 Variations)",
         dropTitle: "Click or drag & drop your Word file (.docx) here",
         dropSub: "1 .docx document per upload",
+        noDocxPrompt: "Don't have a .docx file yet?",
+        noDocxLink: "Create Questions with AI →",
         btnExportDocx: "Download .docx",
         btnPublish: "Share Quiz Link",
         btnShowMore: "Show More",
@@ -1155,11 +1412,13 @@
         founderRole: "Firman A. Prasetyo — Founder & Builder",
         founderCta: "Get in touch",
         archiveModalTitle: "Document Archives",
-        msgProcessing: "Processing your document with AI, please wait...",
+        msgProcessing: "Analyzing your document with AI, please wait...",
         msgErrorDocx: "Please select a valid .docx file.",
         msgArchiveLoading: "Loading archives...",
-        msgArchiveEmpty: "No saved document archives yet.",
-        btnOpenArchive: "Open"
+        msgArchiveEmpty: "No saved document archives for this grade.",
+        btnOpenArchive: "Open",
+        navPricing: "Pricing",
+        navContact: "Contact",
       }
     };
 
@@ -1169,6 +1428,40 @@
     let currentBundle = null;
     let activePackageIndex = 0;
     let visibleQuestionCount = INITIAL_VISIBLE_QUESTIONS;
+    let selectedArchiveGrade = "Semua";
+    let archiveCountsCache = {};
+    let loadedArchiveRows = [];
+    let archiveSearchQuery = "";
+
+    function initScrollReveal() {
+      const items = document.querySelectorAll(".reveal-item");
+      if (!items.length) return;
+
+      const prefersReduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (prefersReduced || !("IntersectionObserver" in window)) {
+        items.forEach((el) => el.classList.add("is-visible"));
+        return;
+      }
+
+      document.body.classList.add("reveal-ready");
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("is-visible");
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        {
+          threshold: 0.12,
+          rootMargin: "0px 0px -36px 0px",
+        }
+      );
+
+      items.forEach((el) => observer.observe(el));
+    }
 
     function detectInitialLang() {
       const saved = localStorage.getItem("kuisia_lang");
@@ -1202,6 +1495,34 @@
       });
       if (currentBundle) {
         renderQuestions();
+      }
+      if (document.getElementById("archiveModal").classList.contains("open")) {
+        renderGradeFilterBar();
+      }
+    }
+
+    function setDropzoneState(state, fileName = "") {
+      const dropzone = document.getElementById("dropzone");
+      const dropIcon = document.getElementById("dropIcon");
+      const dropTitle = document.getElementById("dropTitle");
+      const dropSub = document.getElementById("dropSub");
+      const badge = document.getElementById("selectedFileBadge");
+
+      dropzone.classList.remove("has-file", "is-loading");
+
+      if (state === "selected" && fileName) {
+        dropzone.classList.add("has-file");
+        dropIcon.textContent = "📄";
+        dropTitle.textContent = fileName;
+        dropSub.textContent = I18N[currentLang].dropSub;
+        badge.style.display = "inline-block";
+        badge.className = "file-pill";
+        badge.textContent = "DOCX";
+      } else {
+        dropIcon.textContent = "↑";
+        dropTitle.textContent = I18N[currentLang].dropTitle;
+        dropSub.textContent = I18N[currentLang].dropSub;
+        badge.style.display = "none";
       }
     }
 
@@ -1281,9 +1602,28 @@
         const card = document.createElement("div");
         card.className = "q-preview-card";
 
+        function cleanImageTags(text) {
+          return String(text || "")
+            .replace(/\[[^\]]*\]/g, " ")
+            .replace(/\s+([.,!?;:])/g, "$1")
+            .replace(/\s{2,}/g, " ")
+            .trim();
+        }
+
+        const cleanPassage = cleanImageTags(q.passage || "");
+        if (cleanPassage) {
+          const pBox = document.createElement("div");
+          pBox.style.fontSize = "0.88rem";
+          pBox.style.color = "var(--ink-muted)";
+          pBox.style.marginBottom = "8px";
+          pBox.style.whiteSpace = "pre-line";
+          pBox.textContent = cleanPassage;
+          card.appendChild(pBox);
+        }
+
         const qTitle = document.createElement("div");
         qTitle.style.fontWeight = "700";
-        qTitle.textContent = `${idx + 1}. ${q.question || ""}`;
+        qTitle.textContent = `${idx + 1}. ${cleanImageTags(q.question || "")}`;
         card.appendChild(qTitle);
 
         const urls = Array.isArray(q.image_urls) && q.image_urls.length
@@ -1304,7 +1644,7 @@
           ul.style.fontSize = "0.9rem";
           q.options.forEach((opt) => {
             const row = document.createElement("div");
-            row.textContent = opt;
+            row.textContent = cleanImageTags(opt);
             ul.appendChild(row);
           });
           card.appendChild(ul);
@@ -1316,14 +1656,19 @@
 
     async function handleFileUpload(file) {
       const statusBox = document.getElementById("uploadStatus");
+      statusBox.style.display = "none";
+      statusBox.innerHTML = "";
+
       if (!file || !file.name.toLowerCase().endsWith(".docx")) {
+        setDropzoneState("idle");
         statusBox.style.display = "block";
         statusBox.textContent = I18N[currentLang].msgErrorDocx;
         return;
       }
 
+      setDropzoneState("selected", file.name);
       statusBox.style.display = "block";
-      statusBox.textContent = I18N[currentLang].msgProcessing;
+      statusBox.innerHTML = `<span class="loading-row"><span class="spinner-ring"></span><span>${I18N[currentLang].msgProcessing}</span></span>`;
 
       const formData = new FormData();
       formData.append("file", file);
@@ -1334,58 +1679,120 @@
         const json = await res.json();
         if (!res.ok) throw new Error(json.detail || "Upload failed");
         statusBox.style.display = "none";
+        document.getElementById("docxInput").value = "";
+        setDropzoneState("idle");
         renderWorkspace(json.data);
       } catch (err) {
+        setDropzoneState("idle");
+        statusBox.style.display = "block";
         statusBox.textContent = err.message;
       }
     }
 
-    async function openArchivesModal() {
-      const modal = document.getElementById("archiveModal");
+    function renderGradeFilterBar() {
+      const bar = document.getElementById("gradeFilterBar");
+      bar.innerHTML = "";
+      const totalAll = Object.values(archiveCountsCache).reduce((acc, v) => acc + (Number(v) || 0), 0);
+
+      GRADES.forEach((g) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "grade-tab" + (selectedArchiveGrade === g ? " active" : "");
+        const countVal = g === "Semua" ? totalAll : (archiveCountsCache[g] || 0);
+        btn.textContent = `${g} (${countVal})`;
+        btn.addEventListener("click", () => {
+          selectedArchiveGrade = g;
+          loadArchiveList(g);
+        });
+        bar.appendChild(btn);
+      });
+    }
+
+    function renderFilteredArchiveRows() {
       const listEl = document.getElementById("archiveListContainer");
-      modal.classList.add("open");
+      const q = archiveSearchQuery.trim().toLowerCase();
+
+      const filtered = loadedArchiveRows.filter((item) => {
+        if (!q) return true;
+        const haystack = [
+          item.topic || "",
+          item.filename || "",
+          item.subject || "",
+          item.grade || "",
+        ].join(" ").toLowerCase();
+        return haystack.includes(q);
+      });
+
+      if (!filtered.length) {
+        listEl.textContent = q
+          ? `Tidak ada arsip yang cocok dengan "${archiveSearchQuery.trim()}".`
+          : I18N[currentLang].msgArchiveEmpty;
+        return;
+      }
+
+      listEl.innerHTML = "";
+      filtered.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "archive-row";
+        row.innerHTML = `
+          <div>
+            <div style="font-weight:700;"><span class="grade-badge">${item.grade || "Umum"}</span>${item.topic || item.filename}</div>
+            <small style="color:var(--ink-muted);">${item.subject || "Umum"} • ${item.filename || ""} • ${item.total_questions || 0} soal</small>
+          </div>
+        `;
+        const openBtn = document.createElement("button");
+        openBtn.type = "button";
+        openBtn.className = "btn btn-yellow";
+        openBtn.textContent = I18N[currentLang].btnOpenArchive;
+        openBtn.addEventListener("click", async () => {
+          const detRes = await fetch(`/api/archives/${item.id}`);
+          const detJson = await detRes.json();
+          if (detRes.ok && detJson.data) {
+            document.getElementById("archiveModal").classList.remove("open");
+            renderWorkspace(detJson.data);
+          }
+        });
+        row.appendChild(openBtn);
+        listEl.appendChild(row);
+      });
+    }
+
+    async function loadArchiveList(gradeFilter = "Semua") {
+      const listEl = document.getElementById("archiveListContainer");
       listEl.textContent = I18N[currentLang].msgArchiveLoading;
 
       try {
-        const res = await fetch("/api/archives");
+        const url = gradeFilter && gradeFilter !== "Semua"
+          ? `/api/archives?grade=${encodeURIComponent(gradeFilter)}`
+          : "/api/archives";
+        const res = await fetch(url);
         const json = await res.json();
-        const rows = json.archives || [];
-        if (!rows.length) {
-          listEl.textContent = I18N[currentLang].msgArchiveEmpty;
-          return;
+        if (json.counts && typeof json.counts === "object") {
+          archiveCountsCache = json.counts;
         }
-        listEl.innerHTML = "";
-        rows.forEach((item) => {
-          const row = document.createElement("div");
-          row.className = "archive-row";
-          row.innerHTML = `
-            <div>
-              <div style="font-weight:700;">${item.topic || item.filename}</div>
-              <small style="color:var(--ink-muted);">${item.subject || "Umum"} • ${item.grade || "Umum"} • ${item.total_questions || 0} soal</small>
-            </div>
-          `;
-          const openBtn = document.createElement("button");
-          openBtn.type = "button";
-          openBtn.className = "btn btn-yellow";
-          openBtn.textContent = I18N[currentLang].btnOpenArchive;
-          openBtn.addEventListener("click", async () => {
-            const detRes = await fetch(`/api/archives/${item.id}`);
-            const detJson = await detRes.json();
-            if (detRes.ok && detJson.data) {
-              modal.classList.remove("open");
-              renderWorkspace(detJson.data);
-            }
-          });
-          row.appendChild(openBtn);
-          listEl.appendChild(row);
-        });
+        renderGradeFilterBar();
+        loadedArchiveRows = Array.isArray(json.archives) ? json.archives : [];
+        renderFilteredArchiveRows();
       } catch (err) {
         listEl.textContent = err.message;
       }
     }
 
+    async function openArchivesModal() {
+      const modal = document.getElementById("archiveModal");
+      selectedArchiveGrade = "Semua";
+      archiveSearchQuery = "";
+      const searchInput = document.getElementById("archiveSearchInput");
+      const clearBtn = document.getElementById("clearArchiveSearchBtn");
+      if (searchInput) searchInput.value = "";
+      if (clearBtn) clearBtn.classList.remove("visible");
+      modal.classList.add("open");
+      await loadArchiveList("Semua");
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       applyLanguage(detectInitialLang());
+      initScrollReveal();
 
       document.querySelectorAll(".lang-toggle [data-lang]").forEach((btn) => {
         btn.addEventListener("click", () => applyLanguage(btn.getAttribute("data-lang")));
@@ -1500,6 +1907,21 @@
         } else {
           shareBox.textContent = json.detail || "Gagal membagikan kuis.";
         }
+      });
+
+      const archiveSearchInput = document.getElementById("archiveSearchInput");
+      const clearArchiveSearchBtn = document.getElementById("clearArchiveSearchBtn");
+      archiveSearchInput.addEventListener("input", () => {
+        archiveSearchQuery = archiveSearchInput.value || "";
+        clearArchiveSearchBtn.classList.toggle("visible", Boolean(archiveSearchQuery));
+        renderFilteredArchiveRows();
+      });
+      clearArchiveSearchBtn.addEventListener("click", () => {
+        archiveSearchInput.value = "";
+        archiveSearchQuery = "";
+        clearArchiveSearchBtn.classList.remove("visible");
+        renderFilteredArchiveRows();
+        archiveSearchInput.focus();
       });
     });
   </script>
