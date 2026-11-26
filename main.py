@@ -9,6 +9,8 @@ import time
 import uuid
 from typing import Optional
 
+import cloudinary
+import cloudinary.uploader
 import docx
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -44,10 +46,39 @@ SUPABASE_KEY = (os.getenv("SUPABASE_KEY") or "").strip()
 if not GEMINI_API_KEY or not SUPABASE_URL or not SUPABASE_KEY:
     raise RuntimeError("GEMINI_API_KEY, SUPABASE_URL, dan SUPABASE_KEY wajib diatur di environment.")
 
+CLOUDINARY_CLOUD_NAME = (os.getenv("CLOUDINARY_CLOUD_NAME") or "").strip()
+CLOUDINARY_API_KEY = (os.getenv("CLOUDINARY_API_KEY") or "").strip()
+CLOUDINARY_API_SECRET = (os.getenv("CLOUDINARY_API_SECRET") or "").strip()
+
+CLOUDINARY_ENABLED = bool(CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET)
+if CLOUDINARY_ENABLED:
+    cloudinary.config(
+        cloud_name=CLOUDINARY_CLOUD_NAME,
+        api_key=CLOUDINARY_API_KEY,
+        api_secret=CLOUDINARY_API_SECRET,
+        secure=True,
+    )
+
 client = genai.Client(api_key=GEMINI_API_KEY)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 ALLOWED_GRADES = ["SD", "SMP", "SMA", "SMK", "Kuliah", "Umum"]
+
+
+def _upload_bytes_to_cloudinary(image_bytes: bytes, public_prefix: str = "kuisia") -> Optional[str]:
+    if not CLOUDINARY_ENABLED or not image_bytes:
+        return None
+    try:
+        res = cloudinary.uploader.upload(
+            io.BytesIO(image_bytes),
+            folder="kuisia_quiz_media",
+            public_id=f"{public_prefix}_{uuid.uuid4().hex[:12]}",
+            resource_type="image",
+        )
+        return res.get("secure_url")
+    except Exception as e:
+        print(f"Peringatan upload Cloudinary gagal: {e}")
+        return None
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -163,7 +194,7 @@ def _set_table_no_borders(table):
 
 
 def _persist_data_url_image(src: str, base_url: str) -> str:
-    """Menyimpan gambar data:image/...;base64,... ke MEDIA_DIR dan mengembalikan URL /media/<file>."""
+    """Mengunggah gambar data:image/...;base64,... ke Cloudinary (fallback ke MEDIA_DIR)."""
     if not isinstance(src, str) or not src.startswith("data:image/"):
         return src
     match = re.match(r"^data:image/([a-zA-Z0-9+.-]+);base64,(.+)$", src, flags=re.DOTALL)
@@ -182,6 +213,10 @@ def _persist_data_url_image(src: str, base_url: str) -> str:
 
     try:
         raw_bytes = base64.b64decode(b64_data)
+        cloud_url = _upload_bytes_to_cloudinary(raw_bytes, public_prefix="upimg")
+        if cloud_url:
+            return cloud_url
+
         filename = f"upimg_{uuid.uuid4().hex[:12]}{ext}"
         save_path = os.path.join(MEDIA_DIR, filename)
         with open(save_path, "wb") as f:
@@ -243,10 +278,13 @@ def _extract_images_from_xml_element(xml_element, doc_part, extracted_images: li
             with open(save_path, "wb") as img_f:
                 img_f.write(part.blob)
 
+            cloud_url = _upload_bytes_to_cloudinary(part.blob, public_prefix=f"qimg_{img_idx}")
+            img_url = cloud_url or f"/media/{filename}"
+
             extracted_images.append({
                 "tag": tag,
                 "filename": filename,
-                "url": f"/media/{filename}",
+                "url": img_url,
                 "content_type": content_type,
                 "blob": part.blob,
             })
